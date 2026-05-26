@@ -7,6 +7,7 @@ public class PlayerMove : MonoBehaviour
     public float jumpForce = 8f;
     public int maxAirJumps = 1;
     [Range(0.1f, 1f)] public float jumpCutMultiplier = 0.5f;
+    public bool invertFacing = false;
 
     [Header("Dash")]
     public float dashSpeed = 16f;
@@ -58,7 +59,8 @@ public class PlayerMove : MonoBehaviour
         if (moveInput != 0f)
         {
             Vector3 scale = transform.localScale;
-            scale.x = Mathf.Sign(moveInput) * Mathf.Abs(scale.x);
+            float facingSign = invertFacing ? -Mathf.Sign(moveInput) : Mathf.Sign(moveInput);
+            scale.x = facingSign * Mathf.Abs(scale.x);
             transform.localScale = scale;
         }
     }
