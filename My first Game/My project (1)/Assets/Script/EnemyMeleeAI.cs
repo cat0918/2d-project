@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class EnemyMeleeAI : MonoBehaviour
 {
@@ -14,18 +15,27 @@ public class EnemyMeleeAI : MonoBehaviour
     [Header("Attack")]
     public int attackDamage = 1;
     public float attackCooldown = 0.8f;
+    [Range(0f, 1f)] public float hitTimeNormalized = 0.35f;
+    [Min(0.05f)] public float fallbackAttackDuration = 0.5f;
+    public bool IsAttacking { get; private set; }
 
     private Rigidbody2D rb;
     private float nextAttackTime;
+    private EnemyAnimation animationDriver;
+    private EnemyHealth health;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        animationDriver = GetComponent<EnemyAnimation>();
+        health = GetComponent<EnemyHealth>();
     }
 
     private void FixedUpdate()
     {
-        if (target == null)
+        if (target == null || !target.gameObject.activeInHierarchy ||
+            (health != null && health.IsDead) || IsAttacking ||
+            (animationDriver != null && animationDriver.IsReactingToHit))
         {
             rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y);
             return;
@@ -64,13 +74,43 @@ public class EnemyMeleeAI : MonoBehaviour
     {
         if (Time.time < nextAttackTime) return;
 
-        PlayerHealth playerHealth = target.GetComponent<PlayerHealth>();
-        if (playerHealth != null)
-        {
-            playerHealth.TakeDamage(attackDamage, transform.position);
-        }
+        StartCoroutine(AttackRoutine());
+    }
 
-        nextAttackTime = Time.time + attackCooldown;
+    private IEnumerator AttackRoutine()
+    {
+        IsAttacking = true;
+        Transform victim = target;
+        float facing = victim.position.x >= transform.position.x ? 1f : -1f;
+        float duration = animationDriver != null ? animationDriver.PlayAttack() : 0f;
+        if (duration <= 0f) duration = Mathf.Max(0.05f, fallbackAttackDuration);
+        nextAttackTime = Time.time + Mathf.Max(attackCooldown, duration);
+        float delay = duration * Mathf.Clamp01(hitTimeNormalized);
+        if (delay > 0f) yield return new WaitForSeconds(delay);
+
+        // Recheck at impact so the player can dodge the windup.
+        if (victim != null && victim.gameObject.activeInHierarchy &&
+            (health == null || !health.IsDead) &&
+            Vector2.Distance(transform.position, victim.position) <= attackRange &&
+            (victim.position.x - transform.position.x) * facing >= 0f)
+        {
+            PlayerHealth playerHealth = victim.GetComponent<PlayerHealth>();
+            if (playerHealth != null) playerHealth.TakeDamage(attackDamage, transform.position);
+        }
+        if (duration > delay) yield return new WaitForSeconds(duration - delay);
+        IsAttacking = false;
+    }
+
+    public void CancelAttack()
+    {
+        StopAllCoroutines();
+        IsAttacking = false;
+    }
+
+    private void OnDisable()
+    {
+        CancelAttack();
+        if (rb != null) rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y);
     }
 
     private void OnDrawGizmosSelected()

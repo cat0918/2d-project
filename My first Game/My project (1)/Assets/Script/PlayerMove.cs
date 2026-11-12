@@ -9,6 +9,10 @@ public class PlayerMove : MonoBehaviour
     [Range(0.1f, 1f)] public float jumpCutMultiplier = 0.5f;
     public bool invertFacing = false;
 
+    [Header("Abilities")]
+    public bool startWithDoubleJump = true;
+    public bool HasDoubleJump { get; private set; }
+
     [Header("Dash")]
     public float dashSpeed = 16f;
     public float dashDuration = 0.16f;
@@ -31,15 +35,22 @@ public class PlayerMove : MonoBehaviour
     private float dashCooldownLeft;
     private float dashDirection = 1f;
     private float defaultGravityScale;
+    private float knockbackEnds;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         defaultGravityScale = rb.gravityScale;
+        HasDoubleJump = startWithDoubleJump;
     }
 
     private void Update()
     {
+        if (Time.time < knockbackEnds)
+        {
+            ClearMovementInput();
+            return;
+        }
         moveInput = Input.GetAxisRaw("Horizontal");
 
         if (Input.GetButtonDown("Jump") || Input.GetKeyDown(KeyCode.Space))
@@ -73,8 +84,14 @@ public class PlayerMove : MonoBehaviour
             dashCooldownLeft -= dt;
         }
 
+        if (Time.time < knockbackEnds)
+        {
+            ClearMovementInput();
+            return;
+        }
+
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
-        if (isGrounded)
+        if (isGrounded && rb.linearVelocity.y <= 0f)
         {
             airJumpCount = 0;
         }
@@ -108,11 +125,11 @@ public class PlayerMove : MonoBehaviour
 
         if (jumpPressed)
         {
-            if (isGrounded)
+            if (isGrounded && rb.linearVelocity.y <= 0f)
             {
                 rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
             }
-            else if (airJumpCount < maxAirJumps)
+            else if (HasDoubleJump && airJumpCount < maxAirJumps)
             {
                 rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
                 airJumpCount++;
@@ -127,6 +144,27 @@ public class PlayerMove : MonoBehaviour
         jumpPressed = false;
         jumpReleased = false;
         dashPressed = false;
+    }
+
+    public void BeginKnockback(float duration)
+    {
+        if (isDashing) EndDash();
+        knockbackEnds = Time.time + Mathf.Max(0f, duration);
+        ClearMovementInput();
+    }
+
+    private void ClearMovementInput()
+    {
+        moveInput = 0f;
+        jumpPressed = false;
+        jumpReleased = false;
+        dashPressed = false;
+    }
+
+    public void UnlockDoubleJump()
+    {
+        HasDoubleJump = true;
+        maxAirJumps = Mathf.Max(1, maxAirJumps);
     }
 
     private void StartDash()

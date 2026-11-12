@@ -5,23 +5,27 @@ public class PlayerHealth : MonoBehaviour
 {
     [Header("Health")]
     public int maxHealth = 5;
-    public float invincibleDuration = 0.7f;
+    public float invincibleDuration = 1.2f;
 
     [Header("Knockback")]
     public float knockbackForceX = 8f;
-    public float knockbackForceY = 4f;
+    [Min(0f)] public float knockbackDuration = 0.18f;
 
     private int currentHealth;
     private float invincibleTimer;
     private Rigidbody2D rb;
+    private PlayerMove movement;
 
     public int CurrentHealth => currentHealth;
     public bool IsDead => currentHealth <= 0;
+    public bool IsInvincible => invincibleTimer > 0f;
+    public event Action OnDamaged;
     public event Action<int, int> OnHealthChanged;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        movement = GetComponent<PlayerMove>();
         currentHealth = maxHealth;
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
     }
@@ -36,6 +40,7 @@ public class PlayerHealth : MonoBehaviour
 
     public void TakeDamage(int damage, Vector2 hitSourcePosition)
     {
+        if (damage <= 0) return;
         if (IsDead) return;
         if (invincibleTimer > 0f) return;
 
@@ -45,6 +50,7 @@ public class PlayerHealth : MonoBehaviour
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
 
         ApplyKnockback(hitSourcePosition);
+        if (!IsDead) OnDamaged?.Invoke();
 
         if (currentHealth <= 0)
         {
@@ -55,7 +61,8 @@ public class PlayerHealth : MonoBehaviour
     private void ApplyKnockback(Vector2 hitSourcePosition)
     {
         float dirX = transform.position.x >= hitSourcePosition.x ? 1f : -1f;
-        Vector2 knockback = new Vector2(dirX * knockbackForceX, knockbackForceY);
+        if (movement != null) movement.BeginKnockback(knockbackDuration);
+        Vector2 knockback = new Vector2(dirX * knockbackForceX, 0f);
         rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y);
         rb.AddForce(knockback, ForceMode2D.Impulse);
     }
