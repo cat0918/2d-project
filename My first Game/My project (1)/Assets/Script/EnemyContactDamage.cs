@@ -16,6 +16,9 @@ public class EnemyContactDamage : MonoBehaviour
 
     private void TryDamage(Collider2D target)
     {
+        if (!isActiveAndEnabled) return;
+        EnemyHealth health = GetComponentInParent<EnemyHealth>();
+        if (health != null && health.IsDead) return;
         PlayerHealth playerHealth = target.GetComponent<PlayerHealth>();
         if (playerHealth == null) return;
 
