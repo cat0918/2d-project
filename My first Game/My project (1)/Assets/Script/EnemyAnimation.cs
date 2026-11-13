@@ -12,15 +12,20 @@ public class EnemyAnimation : MonoBehaviour
     private EnemyHealth health;
     private Rigidbody2D body;
     private EnemyMeleeAI melee;
+    private EnemyRangedAI ranged;
+    private BossController boss;
     private bool ready;
     private float reactionEnds;
     private PlayerState? state;
+    private float defaultAnimationSpeed = 1f;
 
     private void Awake()
     {
         health = GetComponent<EnemyHealth>();
         body = GetComponent<Rigidbody2D>();
         melee = GetComponent<EnemyMeleeAI>();
+        ranged = GetComponent<EnemyRangedAI>();
+        boss = GetComponent<BossController>();
         if (visuals == null) visuals = GetComponentInChildren<SPUM_Prefabs>();
     }
 
@@ -34,6 +39,7 @@ public class EnemyAnimation : MonoBehaviour
     {
         health.OnDamaged -= HandleDamage;
         reactionEnds = 0f;
+        RestoreAnimationSpeed();
     }
 
     private void Start()
@@ -54,14 +60,18 @@ public class EnemyAnimation : MonoBehaviour
             return;
         }
         visuals.OverrideControllerInit();
+        defaultAnimationSpeed = visuals._anim.speed;
         ready = true;
     }
 
     private void LateUpdate()
     {
         if (!ready || health.IsDead || IsReactingToHit || (melee != null && melee.IsAttacking)) return;
+        if (ranged != null && ranged.IsShooting) return;
+        if (boss != null && boss.IsAttacking) return;
         PlayerState next = Mathf.Abs(body.linearVelocity.x) > 0.1f ? PlayerState.MOVE : PlayerState.IDLE;
         if (state == next) return;
+        RestoreAnimationSpeed();
         visuals.PlayAnimation(next, 0);
         state = next;
     }
@@ -74,22 +84,49 @@ public class EnemyAnimation : MonoBehaviour
 
     private void HandleDamage()
     {
+        if (boss != null) boss.CancelAttack();
         if (melee != null) melee.CancelAttack();
+        if (ranged != null) ranged.CancelShot();
         if (!ready) return;
         visuals._anim.ResetTrigger("2_Attack");
         reactionEnds = Time.time + PlayAction(PlayerState.DAMAGED, damagedAnimationIndex);
     }
 
-    private float PlayAction(PlayerState action, int index)
+    private float PlayAction(PlayerState action, int index, float speedMultiplier = 1f)
     {
-        var clips = action == PlayerState.ATTACK ? visuals.ATTACK_List : visuals.DAMAGED_List;
+        var clips = action == PlayerState.OTHER ? visuals.OTHER_List :
+            action == PlayerState.ATTACK ? visuals.ATTACK_List : visuals.DAMAGED_List;
         if (index < 0 || index >= clips.Count || clips[index] == null)
         {
             Debug.LogWarning("EnemyAnimation has an invalid clip index for " + action, this);
             return 0f;
         }
+        visuals._anim.speed = defaultAnimationSpeed * Mathf.Clamp(speedMultiplier, 0.1f, 2f);
         visuals.PlayAnimation(action, index);
         state = null;
         return clips[index].length / Mathf.Max(0.01f, visuals._anim.speed);
+    }
+
+    public float PlayBossAction(PlayerState action, int index, float speedMultiplier = 1f)
+    {
+        if (!ready || !isActiveAndEnabled || IsReactingToHit) return 0f;
+        return PlayAction(action, index, speedMultiplier);
+    }
+
+    public void PlayRecovery()
+    {
+        if (!ready || !isActiveAndEnabled) return;
+        RestoreAnimationSpeed();
+        visuals._anim.ResetTrigger("2_Attack");
+        visuals._anim.ResetTrigger("6_Other");
+        visuals.PlayAnimation(PlayerState.IDLE, 0);
+        visuals._anim.Play("IDLE", 0, 0f);
+        state = PlayerState.IDLE;
+    }
+
+    private void RestoreAnimationSpeed()
+    {
+        if (ready && visuals != null && visuals._anim != null)
+            visuals._anim.speed = defaultAnimationSpeed;
     }
 }

@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class EnemyRangedAI : MonoBehaviour
 {
@@ -24,21 +25,30 @@ public class EnemyRangedAI : MonoBehaviour
     public int projectileDamage = 1;
     public float projectileSpeed = 6f;
     public float shootCooldown = 1.2f;
+    [Range(0f, 1f)] public float fireTimeNormalized = 0.45f;
+    [Min(0.05f)] public float fallbackShootDuration = 0.6f;
+    public bool IsShooting { get; private set; }
 
     private Rigidbody2D rb;
     private float nextShootTime;
+    private EnemyAnimation animationDriver;
+    private EnemyHealth health;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         rb.freezeRotation = true;
+        animationDriver = GetComponent<EnemyAnimation>();
+        health = GetComponent<EnemyHealth>();
     }
 
     private void FixedUpdate()
     {
         transform.rotation = Quaternion.identity;
 
-        if (target == null)
+        if (target == null || !target.gameObject.activeInHierarchy ||
+            (health != null && health.IsDead) || IsShooting ||
+            (animationDriver != null && animationDriver.IsReactingToHit))
         {
             rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y);
             return;
@@ -121,17 +131,56 @@ public class EnemyRangedAI : MonoBehaviour
     {
         if (Time.time < nextShootTime) return;
         if (firePoint == null || projectilePrefab == null) return;
-
-        Vector2 shootDirection = target.position.x > firePoint.position.x ? Vector2.right : Vector2.left;
-        GameObject projectileObject = Instantiate(projectilePrefab, firePoint.position, Quaternion.identity);
-
-        EnemyProjectile projectile = projectileObject.GetComponent<EnemyProjectile>();
-        if (projectile != null)
+        if (projectilePrefab.GetComponent<EnemyProjectile>() == null)
         {
-            projectile.Launch(shootDirection, projectileDamage, projectileSpeed);
+            Debug.LogWarning("Projectile Prefab needs EnemyProjectile.", this);
+            nextShootTime = Time.time + Mathf.Max(0.1f, shootCooldown);
+            return;
         }
+        StartCoroutine(ShootRoutine());
+    }
 
-        nextShootTime = Time.time + shootCooldown;
+    private IEnumerator ShootRoutine()
+    {
+        IsShooting = true;
+        rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y);
+        Transform victim = target;
+        Vector2 direction = victim.position.x >= transform.position.x ? Vector2.right : Vector2.left;
+        float duration = animationDriver != null ? animationDriver.PlayAttack() : 0f;
+        if (duration <= 0f) duration = Mathf.Max(0.05f, fallbackShootDuration);
+        nextShootTime = Time.time + Mathf.Max(duration, shootCooldown);
+        float delay = duration * Mathf.Clamp01(fireTimeNormalized);
+        if (delay > 0f) yield return new WaitForSeconds(delay);
+
+        if (victim != null && victim.gameObject.activeInHierarchy &&
+            (health == null || !health.IsDead) && firePoint != null && projectilePrefab != null)
+        {
+            GameObject shot = Instantiate(projectilePrefab, firePoint.position, Quaternion.identity);
+            EnemyProjectile projectile = shot.GetComponent<EnemyProjectile>();
+            if (projectile != null)
+            {
+                // A moving weapon may place the muzzle inside the shooter's collider.
+                foreach (Collider2D bullet in shot.GetComponentsInChildren<Collider2D>())
+                    foreach (Collider2D owner in GetComponentsInChildren<Collider2D>())
+                        Physics2D.IgnoreCollision(bullet, owner);
+                projectile.Launch(direction, projectileDamage, projectileSpeed);
+            }
+            else Destroy(shot);
+        }
+        if (duration > delay) yield return new WaitForSeconds(duration - delay);
+        IsShooting = false;
+    }
+
+    public void CancelShot()
+    {
+        StopAllCoroutines();
+        IsShooting = false;
+    }
+
+    private void OnDisable()
+    {
+        CancelShot();
+        if (rb != null) rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y);
     }
 
     private void OnDrawGizmosSelected()

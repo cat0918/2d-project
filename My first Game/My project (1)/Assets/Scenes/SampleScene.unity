@@ -354,6 +354,13 @@ MonoBehaviour:
   axeProjectilePrefab: {fileID: 5215769401234384544, guid: 78940e8c391f0ef4aa8ed55330e6eeda, type: 3}
   axeDamage: 1
   axeSpeed: 7
+  axePrepareTime: 0.45
+  axeReleaseTimeNormalized: 0.45
+  prepareAnimationIndex: 0
+  dashAnimationIndex: 0
+  axeAnimationIndex: 0
+  dashAnimationSpeed: 0.7
+  axeAnimationSpeed: 1
   attackCooldown: 1.4
 --- !u!114 &152865557
 MonoBehaviour:
@@ -450,6 +457,21 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 1232048629240905580, guid: 3aabd435546394bd292bfe681b4eff9d, type: 3}
   m_PrefabInstance: {fileID: 634514632}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &152865564
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 152865555}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3415eeba0007df64cae5372dc7c4dd4e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimation
+  visuals: {fileID: 0}
+  attackAnimationIndex: 0
+  damagedAnimationIndex: 0
 --- !u!1 &168556821
 GameObject:
   m_ObjectHideFlags: 0
@@ -755,6 +777,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1532218796454169711, guid: ec58634b610c94022b27f39f0cee941e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1484230339}
+    - targetCorrespondingSourceObject: {fileID: 1532218796454169711, guid: ec58634b610c94022b27f39f0cee941e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1484230340}
   m_SourcePrefab: {fileID: 100100000, guid: ec58634b610c94022b27f39f0cee941e, type: 3}
 --- !u!1 &431216862 stripped
 GameObject:
@@ -1369,7 +1394,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7233308530154401741, guid: 3aabd435546394bd292bfe681b4eff9d, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1393,6 +1418,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7233308530154401741, guid: 3aabd435546394bd292bfe681b4eff9d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 152865556}
+    - targetCorrespondingSourceObject: {fileID: 7233308530154401741, guid: 3aabd435546394bd292bfe681b4eff9d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 152865564}
   m_SourcePrefab: {fileID: 100100000, guid: 3aabd435546394bd292bfe681b4eff9d, type: 3}
 --- !u!1 &690713353
 GameObject:
@@ -2434,6 +2462,23 @@ MonoBehaviour:
   projectileDamage: 1
   projectileSpeed: 6
   shootCooldown: 1.2
+  fireTimeNormalized: 0.45
+  fallbackShootDuration: 0.6
+--- !u!114 &1484230340
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1484230332}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3415eeba0007df64cae5372dc7c4dd4e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimation
+  visuals: {fileID: 0}
+  attackAnimationIndex: 2
+  damagedAnimationIndex: 0
 --- !u!1 &1550213722
 GameObject:
   m_ObjectHideFlags: 0
@@ -2703,7 +2748,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4027342679896061903, guid: a4696a02c7fa04918a30ca6051a8901e, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4269039688201717113, guid: a4696a02c7fa04918a30ca6051a8901e, type: 3}
       propertyPath: m_Layer
