@@ -9,6 +9,8 @@ public class PlayerAnimation : MonoBehaviour
 
     [Header("Hit Feedback")]
     [Min(0)] public int damagedAnimationIndex = 0;
+    [Min(0)] public int deathAnimationIndex = 0;
+    private bool deathPlaying;
     public bool IsReactingToHit => isActiveAndEnabled && Time.time < hitReactionEnds;
 
     private PlayerHealth health;
@@ -89,6 +91,7 @@ public class PlayerAnimation : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (health != null && health.IsDead) return;
         if (!initialized) return;
         if (IsReactingToHit) return;
         if (attack != null && attack.IsAttacking) return;
@@ -105,6 +108,7 @@ public class PlayerAnimation : MonoBehaviour
 
     public float PlayAttack(int clipIndex)
     {
+        if (health != null && health.IsDead) return 0f;
         if (!initialized || !isActiveAndEnabled || IsReactingToHit) return 0f;
         if (clipIndex < 0 || clipIndex >= visuals.ATTACK_List.Count ||
             visuals.ATTACK_List[clipIndex] == null)
@@ -116,6 +120,33 @@ public class PlayerAnimation : MonoBehaviour
         visuals.PlayAnimation(PlayerState.ATTACK, clipIndex);
         currentState = null;
         return visuals.ATTACK_List[clipIndex].length / Mathf.Max(0.01f, visuals._anim.speed);
+    }
+
+    public float PlayDeath()
+    {
+        if (!initialized || !isActiveAndEnabled) return 0f;
+        if (deathAnimationIndex < 0 || deathAnimationIndex >= visuals.DEATH_List.Count ||
+            visuals.DEATH_List[deathAnimationIndex] == null)
+        {
+            Debug.LogWarning("Select a valid Death Animation Index in SPUM DEATH_List.", this);
+            return 0f;
+        }
+        foreach (AnimatorControllerParameter parameter in visuals._anim.parameters)
+            if (parameter.type == AnimatorControllerParameterType.Trigger)
+                visuals._anim.ResetTrigger(parameter.name);
+        visuals.PlayAnimation(PlayerState.DEATH, deathAnimationIndex);
+        visuals._anim.ResetTrigger("4_Death");
+        visuals._anim.Play("DEATH", 0, 0f);
+        deathPlaying = true;
+        return visuals.DEATH_List[deathAnimationIndex].length / Mathf.Max(0.01f, visuals._anim.speed);
+    }
+
+    public void HoldDeathPose()
+    {
+        if (!deathPlaying || visuals == null || visuals._anim == null) return;
+        visuals._anim.Play("DEATH", 0, 0.999f);
+        visuals._anim.Update(0f);
+        visuals._anim.speed = 0f;
     }
 
     private void SetState(PlayerState state)

@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using System.Collections;
 
 public class PlayerHealth : MonoBehaviour
 {
@@ -20,6 +21,8 @@ public class PlayerHealth : MonoBehaviour
     public bool IsDead => currentHealth <= 0;
     public bool IsInvincible => invincibleTimer > 0f;
     public event Action OnDamaged;
+    public bool DeathSequenceFinished { get; private set; }
+    [Min(0f)] public float deathScreenDelay = 0.5f;
     public event Action<int, int> OnHealthChanged;
 
     private void Awake()
@@ -69,7 +72,30 @@ public class PlayerHealth : MonoBehaviour
 
     private void Die()
     {
-        Debug.Log("Player Died");
-        gameObject.SetActive(false);
+        if (movement != null) movement.enabled = false;
+        PlayerAttack attack = GetComponent<PlayerAttack>();
+        if (attack != null) attack.enabled = false;
+        PlayerInteraction interaction = GetComponent<PlayerInteraction>();
+        if (interaction != null) interaction.enabled = false;
+        PlayerJumpPose pose = GetComponent<PlayerJumpPose>();
+        if (pose != null) pose.enabled = false;
+        foreach (Collider2D collider in GetComponentsInChildren<Collider2D>())
+            collider.enabled = false;
+        rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
+        rb.simulated = false;
+        if (GetComponent<PlayerDeathScreen>() == null)
+            gameObject.AddComponent<PlayerDeathScreen>();
+        StartCoroutine(DeathRoutine());
+    }
+
+    private IEnumerator DeathRoutine()
+    {
+        PlayerAnimation animationDriver = GetComponent<PlayerAnimation>();
+        float duration = animationDriver != null ? animationDriver.PlayDeath() : 0f;
+        if (duration > 0f) yield return new WaitForSeconds(duration);
+        if (animationDriver != null) animationDriver.HoldDeathPose();
+        if (deathScreenDelay > 0f) yield return new WaitForSeconds(deathScreenDelay);
+        DeathSequenceFinished = true;
     }
 }
