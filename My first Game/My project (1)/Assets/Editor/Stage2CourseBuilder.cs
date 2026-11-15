@@ -168,7 +168,7 @@ public static class Stage2CourseBuilder
         if (EditorApplication.isPlayingOrWillChangePlaymode) return;
         Scene scene = SceneManager.GetActiveScene();
         Stage2Course found = scene.GetRootGameObjects()
-            .SelectMany(o => o.GetComponentsInChildren<Stage2Course>(true)).FirstOrDefault();
+            .SelectMany(o => o.GetComponentsInChildren<Stage2Course>(true)).FirstOrDefault(c => c.name == RootName);
         if (found == null)
         {
             EditorUtility.DisplayDialog("Stage 2", "Build the Stage 2 course first.", "OK");
@@ -208,14 +208,27 @@ public static class Stage2CourseBuilder
         finally { Undo.CollapseUndoOperations(group); }
     }
 
-    private static Transform Group(string name)
+    internal static void PrepareLayout(Transform layoutRoot, int layer, Stage2Course layoutCourse)
+    {
+        root = layoutRoot;
+        groundLayer = layer;
+        course = layoutCourse;
+        square = CreateSprite("Block", (x, y) => true);
+        spike = CreateSprite("Spike", (x, y) => Mathf.Abs(x - 15.5f) <= (31f - y) * 0.5f);
+        arrow = CreateSprite("Arrow", (x, y) => (x < 12 && Mathf.Abs(y - 15.5f) <= x) || (x >= 8 && y >= 13 && y <= 18));
+    }
+
+    internal static Sprite BlockSprite => square;
+    internal static Sprite ArrowSprite => arrow;
+
+    internal static Transform Group(string name)
     {
         GameObject go = new GameObject(name);
         go.transform.SetParent(root, false);
         return go.transform;
     }
 
-    private static GameObject Visual(Transform parent, string name, Vector2 position, Vector2 size, Sprite sprite, Color color)
+    internal static GameObject Visual(Transform parent, string name, Vector2 position, Vector2 size, Sprite sprite, Color color)
     {
         GameObject go = new GameObject(name);
         go.transform.SetParent(parent, false);
@@ -228,14 +241,14 @@ public static class Stage2CourseBuilder
         return go;
     }
 
-    private static void Floor(Transform parent, string name, float left, float right, float top, float height = 0.5f)
+    internal static void Floor(Transform parent, string name, float left, float right, float top, float height = 0.5f)
     {
         GameObject go = Visual(parent, name, new Vector2((left + right) / 2, top - height / 2), new Vector2(right - left, height), square, FloorColor);
         go.layer = groundLayer;
         go.AddComponent<BoxCollider2D>();
     }
 
-    private static Transform Checkpoint(Transform parent, float x, float top)
+    internal static Transform Checkpoint(Transform parent, float x, float top)
     {
         Visual(parent, "SafePad", new Vector2(x, top + 0.03f), new Vector2(2, 0.06f), square, SafeColor);
         GameObject point = new GameObject("RespawnPoint");
@@ -277,7 +290,7 @@ public static class Stage2CourseBuilder
         if (EditorApplication.isPlayingOrWillChangePlaymode) return;
         Scene scene = SceneManager.GetActiveScene();
         Stage2Course found = scene.GetRootGameObjects()
-            .SelectMany(o => o.GetComponentsInChildren<Stage2Course>(true)).FirstOrDefault();
+            .SelectMany(o => o.GetComponentsInChildren<Stage2Course>(true)).FirstOrDefault(c => c.name == RootName);
         if (found == null)
         {
             EditorUtility.DisplayDialog("Save points", "Build the Stage 2 course first.", "OK");
@@ -336,7 +349,7 @@ public static class Stage2CourseBuilder
         finally { Undo.CollapseUndoOperations(group); }
     }
 
-    private static void Spikes(Transform parent, float left, float right, float bottom)
+    internal static void Spikes(Transform parent, float left, float right, float bottom)
     {
         for (float x = left + 0.25f; x < right; x += 0.5f)
             Visual(parent, "Spike", new Vector2(x, bottom + 0.25f), new Vector2(0.5f, 0.5f), spike, new Color(1f, 0.4f, 0.35f));
@@ -349,7 +362,7 @@ public static class Stage2CourseBuilder
         trigger.AddComponent<StageTrapHazard>().course = course;
     }
 
-    private static void Emitter(Transform parent, string name, Vector2 position, Vector2 direction, Sprite sprite,
+    internal static void Emitter(Transform parent, string name, Vector2 position, Vector2 direction, Sprite sprite,
         Vector2 size, float speed, float interval, float warning, float delay, float lifetime, Vector2 markerPosition)
     {
         GameObject go = new GameObject(name);
@@ -370,7 +383,7 @@ public static class Stage2CourseBuilder
         emitter.warningMarker = marker.GetComponent<SpriteRenderer>();
     }
 
-    private static void Label(Transform parent, string value, float x, float y)
+    internal static void Label(Transform parent, string value, float x, float y)
     {
         GameObject go = new GameObject("Guide_" + value.Split('\n')[0]);
         go.transform.SetParent(parent, false);
