@@ -80,7 +80,7 @@ public static class Stage2CourseBuilder
             Transform arrows = Group("02_ArrowTiming");
             Floor(arrows, "ArrowRunway", 5, 19, 0);
             Emitter(arrows, "ArrowLauncher", new Vector2(18.5f, 0.65f), Vector2.left,
-                arrow, new Vector2(0.8f, 0.22f), 8, 2.8f, 0.8f, 0, 1.7f,
+                arrow, new Vector2(0.8f, 0.22f), 8, 1f, 0.3f, 0, 1.7f,
                 new Vector2(18.5f, 1.2f));
             Label(arrows, "01  ARROWS / WATCH THE RED WARNING", 12, 4);
 
@@ -98,7 +98,7 @@ public static class Stage2CourseBuilder
                 float x = new[] { 26f, 31.25f, 36.5f }[i];
                 float top = i == 1 ? 0.7f : 0f;
                 Emitter(falling, "FallingBlock_" + (i + 1), new Vector2(x, 6.5f), Vector2.down,
-                    square, new Vector2(0.8f, 0.8f), 14, 3.8f, 0.9f, i * 1.1f, 1.5f,
+                    square, new Vector2(0.8f, 0.8f), 14, 1f, 0.3f, 0, 1.5f,
                     new Vector2(x, top + 0.12f));
             }
             Label(falling, "02  FALLING BLOCKS / WAIT THEN CROSS", 31.5f, 8);
@@ -162,7 +162,6 @@ public static class Stage2CourseBuilder
         finally { Undo.CollapseUndoOperations(undoGroup); }
     }
 
-    [MenuItem("Tools/Level Design/Tune Stage 2 Traps")]
     public static void TuneTraps()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode) return;
@@ -207,6 +206,36 @@ public static class Stage2CourseBuilder
         }
         finally { Undo.CollapseUndoOperations(group); }
     }
+
+    public static void ApplyFasterTrapTiming()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+        Scene scene = SceneManager.GetActiveScene();
+        StageTrapEmitter[] emitters = scene.GetRootGameObjects()
+            .SelectMany(o => o.GetComponentsInChildren<Stage2Course>(true))
+            .Where(c => c.name == RootName || c.name == "Stage3_ExplorationCourse")
+            .SelectMany(c => c.GetComponentsInChildren<StageTrapEmitter>(true)).Distinct().ToArray();
+        if (emitters.Length == 0)
+        {
+            EditorUtility.DisplayDialog("Trap timing", "No generated Stage 2 or Stage 3 traps were found.", "OK");
+            return;
+        }
+        Undo.IncrementCurrentGroup();
+        int group = Undo.GetCurrentGroup();
+        Undo.SetCurrentGroupName("Apply faster trap timing");
+        foreach (StageTrapEmitter emitter in emitters)
+        {
+            Undo.RecordObject(emitter, "Adjust trap timing");
+            emitter.interval = 1f;
+            emitter.warningTime = 0.3f;
+            emitter.initialDelay = 0f;
+            PrefabUtility.RecordPrefabInstancePropertyModifications(emitter);
+        }
+        Undo.CollapseUndoOperations(group);
+        EditorSceneManager.MarkSceneDirty(scene);
+        Debug.Log("Faster timing applied to " + emitters.Length + " traps. Projectile speeds and platform activation are unchanged.");
+    }
+
 
     internal static void PrepareLayout(Transform layoutRoot, int layer, Stage2Course layoutCourse)
     {
@@ -284,7 +313,6 @@ public static class Stage2CourseBuilder
         return point.transform;
     }
 
-    [MenuItem("Tools/Level Design/Upgrade Stage 2 Save Points")]
     public static void UpgradeSavePoints()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode) return;

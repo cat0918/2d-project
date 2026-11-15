@@ -72,7 +72,8 @@ public static class Stage3CourseBuilder
             Marker(layout.transform, gallery, "E04", -18, 22, 3, "Second encounter. Tune range so both enemies do not engage at once.");
             Parts.Floor(gallery, "ArrowRunway", -30, -20, 22);
             Parts.Emitter(gallery, "GalleryArrow", new Vector2(-20.6f, 22.65f), Vector2.left,
-                Parts.ArrowSprite, new Vector2(0.8f, 0.22f), 8, 3, 0.8f, 0.5f, 1.2f, new Vector2(-20.6f, 23.2f));
+                Parts.ArrowSprite, new Vector2(0.8f, 0.22f), 8, 1f, 0.3f, 0, 1.2f, new Vector2(-20.6f, 23.2f));
+            gallery.Find("GalleryArrow").GetComponent<StageTrapEmitter>().fireBothDirections = true;
             Parts.Spikes(gallery, -34, -30, 20);
             Parts.Label(gallery, "02 / LONG GALLERY + ARROWS", -18, 26);
 
@@ -130,10 +131,52 @@ public static class Stage3CourseBuilder
         finally { Undo.CollapseUndoOperations(undoGroup); }
     }
 
+    public static void UseSingleArrowBlock()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+        Scene scene = SceneManager.GetActiveScene();
+        Transform layout = scene.GetRootGameObjects().SelectMany(o => o.GetComponentsInChildren<Transform>(true))
+            .FirstOrDefault(t => t.name == RootName);
+        Transform gallery = layout != null ? layout.Find("03_Long_Gallery") : null;
+        Transform runway = gallery != null ? gallery.Find("ArrowRunway") : null;
+        Transform sourceTransform = gallery != null ? gallery.Find("GalleryArrow") : null;
+        Collider2D floor = runway != null ? runway.GetComponent<Collider2D>() : null;
+        StageTrapEmitter source = sourceTransform != null ? sourceTransform.GetComponent<StageTrapEmitter>() : null;
+        if (floor == null || source == null)
+        {
+            EditorUtility.DisplayDialog("Stage 3", "Could not find the Stage 3 arrow runway and launcher.", "OK");
+            return;
+        }
+        Undo.IncrementCurrentGroup();
+        int group = Undo.GetCurrentGroup();
+        Undo.SetCurrentGroupName("Use a single bidirectional arrow block");
+        try
+        {
+            Undo.RecordObject(source, "Enable bidirectional firing");
+            source.fireBothDirections = true;
+            PrefabUtility.RecordPrefabInstancePropertyModifications(source);
+            foreach (string suffix in new[] { "", "_Housing", "_Warning" })
+            {
+                Transform extra = gallery.Find("GalleryArrow_Opposite" + suffix);
+                if (extra == null) continue;
+                Undo.RecordObject(extra.gameObject, "Disable extra launcher");
+                extra.gameObject.SetActive(false);
+            }
+            EditorSceneManager.MarkSceneDirty(scene);
+            Selection.activeGameObject = source.gameObject;
+        }
+        catch (Exception)
+        {
+            Undo.RevertAllDownToGroup(group);
+            throw;
+        }
+        finally { Undo.CollapseUndoOperations(group); }
+    }
+
     private static void Drop(Transform parent, string name, float x, float floor, float delay)
     {
         Parts.Emitter(parent, name, new Vector2(x, floor + 6.5f), Vector2.down, Parts.BlockSprite,
-            new Vector2(0.8f, 0.8f), 14, 3.8f, 0.9f, delay, 1.5f, new Vector2(x, floor + 0.12f));
+            new Vector2(0.8f, 0.8f), 14, 1f, 0.3f, 0, 1.5f, new Vector2(x, floor + 0.12f));
     }
 
     private static void Marker(Transform layout, Transform parent, string id, float x, float floor, float patrolWidth, string note)

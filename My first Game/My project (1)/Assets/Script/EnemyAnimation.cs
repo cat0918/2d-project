@@ -20,6 +20,7 @@ public class EnemyAnimation : MonoBehaviour
     private PlayerState? state;
     private float defaultAnimationSpeed = 1f;
     private bool deathPlaying;
+    private bool introPlaying;
 
     private void Awake()
     {
@@ -68,7 +69,7 @@ public class EnemyAnimation : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (!ready || health.IsDead || IsReactingToHit || (melee != null && melee.IsAttacking)) return;
+        if (!ready || introPlaying || health.IsDead || IsReactingToHit || (melee != null && melee.IsAttacking)) return;
         if (ranged != null && ranged.IsShooting) return;
         if (boss != null && boss.IsAttacking) return;
         PlayerState next = Mathf.Abs(body.linearVelocity.x) > 0.1f ? PlayerState.MOVE : PlayerState.IDLE;
@@ -82,6 +83,61 @@ public class EnemyAnimation : MonoBehaviour
     {
         if (!ready || !isActiveAndEnabled || health.IsDead || IsReactingToHit) return 0f;
         return PlayAction(PlayerState.ATTACK, attackAnimationIndex);
+    }
+
+    public bool BeginSleepingPose()
+    {
+        if (!ready || PlayDeath() <= 0f) return false;
+        introPlaying = true;
+        SampleWakePose(0f);
+        return true;
+    }
+
+    public void AlignStandingFeetToCollider()
+    {
+        if (!ready || visuals == null || visuals._anim == null) return;
+        Collider2D collider = GetComponent<Collider2D>();
+        Transform model = visuals._anim.transform;
+        if (collider == null || collider.isTrigger || model == transform || !model.IsChildOf(transform)) return;
+        PlayRecovery();
+        visuals._anim.Update(0f);
+        float footBottom = float.PositiveInfinity;
+        foreach (string path in new[] { "Root/P_LFoot", "Root/P_RFoot" })
+        {
+            Transform foot = model.Find(path);
+            if (foot == null) continue;
+            foreach (SpriteRenderer renderer in foot.GetComponentsInChildren<SpriteRenderer>())
+                if (renderer.enabled && renderer.sprite != null)
+                    footBottom = Mathf.Min(footBottom, renderer.bounds.min.y);
+        }
+        if (float.IsPositiveInfinity(footBottom))
+        {
+            Debug.LogWarning("Could not locate SPUM foot sprites for boss alignment.", this);
+            return;
+        }
+        // Move only the visual container, not physics, attack points, or animation bones.
+        float adjustment = collider.bounds.min.y - footBottom;
+        if (Mathf.Abs(adjustment) > collider.bounds.size.y)
+        {
+            Debug.LogWarning("Boss visual offset is unusually large; check its collider and foot sprites.", this);
+            return;
+        }
+        model.position += Vector3.up * adjustment;
+    }
+
+    public void SampleWakePose(float progress)
+    {
+        if (!introPlaying || visuals == null || visuals._anim == null) return;
+        visuals._anim.speed = 0f;
+        visuals._anim.Play("DEATH", 0, Mathf.Lerp(0.999f, 0f, Mathf.Clamp01(progress)));
+        visuals._anim.Update(0f);
+    }
+
+    public void FinishWakePose()
+    {
+        introPlaying = false;
+        deathPlaying = false;
+        PlayRecovery();
     }
 
     private void HandleDamage()

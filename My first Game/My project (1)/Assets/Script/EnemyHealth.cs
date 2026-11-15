@@ -7,6 +7,7 @@ public class EnemyHealth : MonoBehaviour
     [Min(0f)] public float deathDisappearDelay = 1f;
 
     private int currentHealth;
+    public bool IsInvulnerable { get; set; }
     public bool IsDead => currentHealth <= 0;
     public event System.Action OnDamaged;
 
@@ -17,7 +18,7 @@ public class EnemyHealth : MonoBehaviour
 
     public void TakeDamage(int damage)
     {
-        if (damage <= 0 || IsDead) return;
+        if (damage <= 0 || IsDead || IsInvulnerable) return;
         currentHealth -= damage;
         if (currentHealth <= 0)
         {
