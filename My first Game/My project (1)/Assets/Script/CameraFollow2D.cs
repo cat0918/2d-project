@@ -10,6 +10,11 @@ public class CameraFollow2D : MonoBehaviour
     public bool snapOnStart = true;
     public bool freezeOnDeath = true;
 
+    [Header("Hit Shake")]
+    public bool hitShakeEnabled = true;
+    [Min(0f)] public float hitShakeStrength = 0.045f;
+    [Min(0.01f)] public float hitShakeDuration = 0.09f;
+
     [Header("Optional Map Bounds (World Coordinates)")]
     public bool useBounds;
     public Vector2 minBounds = new Vector2(-20f, -10f);
@@ -18,6 +23,25 @@ public class CameraFollow2D : MonoBehaviour
     private Camera view;
     private Vector2 velocity;
     private float fixedZ;
+    private Vector2 shakeOffset;
+    private float shakeRemaining;
+
+    public void PlayHitShake()
+    {
+        if (hitShakeEnabled && isActiveAndEnabled) shakeRemaining = hitShakeDuration;
+    }
+
+    private void OnDisable()
+    {
+        RemoveShake();
+        shakeRemaining = 0f;
+    }
+
+    private void RemoveShake()
+    {
+        transform.position -= (Vector3)shakeOffset;
+        shakeOffset = Vector2.zero;
+    }
 
     private void Awake()
     {
@@ -42,15 +66,19 @@ public class CameraFollow2D : MonoBehaviour
 
     private void LateUpdate()
     {
+        // Remove last frame's visual offset before smoothing the follow position.
+        RemoveShake();
         if (target == null || !target.gameObject.activeInHierarchy)
         {
             velocity = Vector2.zero;
+            shakeRemaining = 0f;
             return;
         }
         PlayerHealth health = target.GetComponent<PlayerHealth>();
         if (freezeOnDeath && health != null && health.IsDead)
         {
             velocity = Vector2.zero;
+            shakeRemaining = 0f;
             return;
         }
 
@@ -58,6 +86,16 @@ public class CameraFollow2D : MonoBehaviour
         Vector2 next = Vector2.SmoothDamp(transform.position, desired, ref velocity,
             Mathf.Max(0.01f, smoothTime), Mathf.Infinity, Time.deltaTime);
         SetPosition(ClampToMap(next));
+        if (hitShakeEnabled && shakeRemaining > 0f && Time.deltaTime > 0f)
+        {
+            Vector2 basePosition = transform.position;
+            float fade = Mathf.Clamp01(shakeRemaining / Mathf.Max(0.01f, hitShakeDuration));
+            Vector2 shaken = ClampToMap(basePosition + Random.insideUnitCircle * hitShakeStrength * fade);
+            shakeOffset = shaken - basePosition;
+            SetPosition(shaken);
+            shakeRemaining = Mathf.Max(0f, shakeRemaining - Time.deltaTime);
+        }
+        else if (!hitShakeEnabled) shakeRemaining = 0f;
     }
 
     private Vector2 ClampToMap(Vector2 position)

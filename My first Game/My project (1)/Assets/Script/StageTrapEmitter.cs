@@ -3,6 +3,7 @@ using UnityEngine;
 public class StageTrapEmitter : MonoBehaviour
 {
     public Sprite projectileSprite;
+    public Color projectileColor = new Color(1f, 0.65f, 0.25f);
     public Vector2 projectileSize = new Vector2(0.7f, 0.18f);
     public Vector2 direction = Vector2.left;
     public bool fireBothDirections;
@@ -25,9 +26,18 @@ public class StageTrapEmitter : MonoBehaviour
     private bool hasArrowRange;
     private float floorLeft;
     private float floorRight;
+    private SpriteRenderer fallingStonePreview;
+    private bool previewOriginallyEnabled;
 
     private void OnEnable()
     {
+        fallingStonePreview = null;
+        if (!fireBothDirections && direction.y < 0f && Mathf.Abs(direction.y) > Mathf.Abs(direction.x))
+        {
+            Transform housing = transform.parent != null ? transform.parent.Find(name + "_Housing") : null;
+            if (housing != null) fallingStonePreview = housing.GetComponent<SpriteRenderer>();
+            if (fallingStonePreview != null) previewOriginallyEnabled = fallingStonePreview.enabled;
+        }
         if (warningMarker != null) idleColor = warningMarker.color;
         IsActive = true;
         warning = false;
@@ -42,6 +52,7 @@ public class StageTrapEmitter : MonoBehaviour
         if (!warning)
         {
             warning = true;
+            SetFallingStonePreview(true);
             if (warningMarker != null) warningMarker.color = new Color(1f, 0.25f, 0.08f);
             phaseEnds = Time.time + Mathf.Max(0.05f, warningTime);
             return;
@@ -61,6 +72,14 @@ public class StageTrapEmitter : MonoBehaviour
             SpawnProjectile(Vector2.right, 0.4f);
         }
         else SpawnProjectile(direction, 0f);
+        SetFallingStonePreview(false);
+    }
+
+    private void SetFallingStonePreview(bool visible)
+    {
+        // Hide only the waiting stone, never the emitter or its warning marker.
+        if (fallingStonePreview != null)
+            fallingStonePreview.enabled = visible && previewOriginallyEnabled;
     }
 
     private void SpawnProjectile(Vector2 shotDirection, float offset)
@@ -70,7 +89,7 @@ public class StageTrapEmitter : MonoBehaviour
         SpriteRenderer visual = shot.AddComponent<SpriteRenderer>();
         visual.sprite = projectileSprite;
         visual.flipX = shotDirection.x > 0f;
-        visual.color = new Color(1f, 0.65f, 0.25f);
+        visual.color = projectileColor;
         visual.sortingOrder = 8;
         Vector2 spriteSize = projectileSprite.bounds.size;
         shot.transform.localScale = new Vector3(projectileSize.x / spriteSize.x, projectileSize.y / spriteSize.y, 1f);
@@ -140,6 +159,7 @@ public class StageTrapEmitter : MonoBehaviour
 
     private void OnDisable()
     {
+        SetFallingStonePreview(true);
         IsActive = false;
         warning = false;
         if (warningMarker != null) warningMarker.color = idleColor;

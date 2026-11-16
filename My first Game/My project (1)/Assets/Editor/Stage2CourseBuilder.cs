@@ -19,7 +19,6 @@ public static class Stage2CourseBuilder
     private static readonly Color FloorColor = new Color(0.48f, 0.67f, 0.72f);
     private static readonly Color SafeColor = new Color(0.35f, 0.85f, 0.65f);
 
-    [MenuItem("Tools/Level Design/Build Stage 2 Trap Course")]
     public static void Build()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode) return;

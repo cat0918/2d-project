@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Stage2BackgroundBlend
+  m_Shader: {fileID: 4800000, guid: b73affa02336eae439db035ec843eb6d, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _Exterior:
+        m_Texture: {fileID: 2800000, guid: 919b134d48891224ebd769fd55e2dca3, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Interior:
+        m_Texture: {fileID: 2800000, guid: d410e03944fdedc48ab1ba67c653fe24, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats: []
+    m_Colors:
+    - _ExteriorRect: {r: -29.64583, g: -6.8213596, b: 60, a: 20}
+    - _ExteriorTint: {r: 0.72, g: 0.77, b: 0.83, a: 1}
+    - _GalleryRect: {r: 30.35417, g: -6.8213596, b: 100.64163, a: 33.54721}
+    - _InteriorTint: {r: 0.78, g: 0.85, b: 0.82, a: 1}
+    - _Transition: {r: 22.35417, g: 42.35417, b: 20.35417, a: 22.35417}
+    - _UpperFade: {r: 0, g: 0, b: 0, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

@@ -1,0 +1,8 @@
+Method: built-in image_gen with transparent background.
+Output: FortressInteractables.png. Left: WingedBoot; right: CheckpointMonument.
+Editor trims alpha bounds, creates collider-free child artwork and hides original placeholders.
+DoubleJumpPickup unlocks on interaction and deactivates itself, including its visual and prompt.
+Checkpoint saving remains session-only; healing, persistence and enemy respawns not added.
+
+Final prompt:
+Use case: stylized-concept. Production transparent pixel-art sprite sheet for a small Unity 2D ruined fortress platformer. Exactly TWO separate sprites centered in equal square cells, one row of two cells, transparent background, no grid, no text or labels. LEFT CELL: one collectible winged leather ankle boot, side view facing right, worn warm brown leather and small antique gold buckle, a clearly readable pale ivory feathered wing attached at the ankle, wing pointing upward, small muted turquoise gem; charming but medieval, strong silhouette readable at small size. RIGHT CELL: one freestanding checkpoint stone waystone, front elevation, weathered blue-gray carved gothic pedestal and upright arched monument with a small recessed pale cyan crystal lantern near the top, stable stone base, subtle chipped edges and sparse moss. No floor under it. Both fully isolated, transparent around all edges, no external ground shadows, no glow spilling outside silhouette, no characters. Consistent crisp low-resolution pixel clusters, 32-to-48 pixel sprite style enlarged cleanly, limited palette, no smooth gradients, no perspective scene. Occupy 80 percent of each cell. Transparent background.

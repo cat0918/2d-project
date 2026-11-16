@@ -18,13 +18,19 @@ public class EnemyHealth : MonoBehaviour
 
     public void TakeDamage(int damage)
     {
-        if (damage <= 0 || IsDead || IsInvulnerable) return;
+        TryTakeDamage(damage);
+    }
+
+    public bool TryTakeDamage(int damage)
+    {
+        if (damage <= 0 || IsDead || IsInvulnerable) return false;
         currentHealth -= damage;
         if (currentHealth <= 0)
         {
             Die();
         }
         else OnDamaged?.Invoke();
+        return true;
     }
 
     private void Die()

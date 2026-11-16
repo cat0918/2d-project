@@ -7,7 +7,7 @@ public class EnemyPlacementMarker : MonoBehaviour
     [TextArea] public string placementNote;
     [Min(0f)] public float suggestedPatrolWidth = 3f;
 
-    private void OnDrawGizmos()
+    private void OnDrawGizmosSelected()
     {
         Gizmos.color = new Color(1f, 0.65f, 0.25f);
         Gizmos.DrawWireCube(transform.position, new Vector3(0.65f, 1.1f, 0.1f));

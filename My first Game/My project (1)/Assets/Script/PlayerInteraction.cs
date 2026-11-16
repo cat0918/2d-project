@@ -7,6 +7,7 @@ public class PlayerInteraction : MonoBehaviour
     public KeyCode interactKey = KeyCode.E;
     [Min(0.1f)] public float interactRadius = 1.5f;
     public LayerMask interactLayers = ~0;
+    public Interactable CurrentTarget { get; private set; }
 
     private PlayerMove player;
     private PlayerHealth health;
@@ -16,12 +17,13 @@ public class PlayerInteraction : MonoBehaviour
     {
         player = GetComponent<PlayerMove>();
         health = GetComponent<PlayerHealth>();
+        if (GetComponent<InteractionPromptUI>() == null) gameObject.AddComponent<InteractionPromptUI>();
     }
 
     private void Update()
     {
-        if (!player.isActiveAndEnabled || (health != null && health.IsDead)) return;
-        if (!Input.GetKeyDown(interactKey)) return;
+        CurrentTarget = null;
+        if (Time.timeScale <= 0f || !player.isActiveAndEnabled || (health != null && health.IsDead)) return;
 
         ContactFilter2D filter = new ContactFilter2D();
         filter.SetLayerMask(interactLayers);
@@ -41,8 +43,15 @@ public class PlayerInteraction : MonoBehaviour
             nearestDistance = distance;
         }
 
-        if (nearest != null) nearest.Interact(player);
+        CurrentTarget = nearest;
+        if (nearest != null && Input.GetKeyDown(interactKey))
+        {
+            nearest.Interact(player);
+            CurrentTarget = null;
+        }
     }
+
+    private void OnDisable() { CurrentTarget = null; }
 
     private void OnDrawGizmosSelected()
     {

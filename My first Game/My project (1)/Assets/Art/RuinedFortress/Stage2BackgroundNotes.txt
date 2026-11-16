@@ -1,0 +1,8 @@
+Method: built-in image_gen, style reference FortressCourtyard.png.
+Output: FortressGallery.png. Original courtyard image preserved.
+Integration: background-only sprite with world-space courtyard/gallery blend.
+Gallery repeats using mirrored coordinates; no claim of seamless source tiling.
+No terrain, camera, trap or collider edits.
+
+Prompt:
+Use case: stylized-concept. Production asset: wide panoramic pixel art background for a 2D side-view ruined fortress platformer. Reference image is STYLE REFERENCE ONLY: match its crisp pixel clusters, masonry scale, subdued blue-gray palette and gothic arches. Create a new damp interior fortress gallery, with tall recessed pointed arches, small dim windows with blue dusk light, broken masonry, thin muted olive moss and water stains. Flat orthographic front elevation, not a perspective hallway. Low contrast quiet dark lower half for gameplay readability. Upper half vaulted dark stone architecture. Wide panoramic 3:1. Horizontal left and right edges similar dark masonry so mirrored repeating panels blend well. No characters, no foreground floor, no playable platforms, no UI, no text, no torches or bright effects. Actual background artwork filling the whole image, not a mockup.

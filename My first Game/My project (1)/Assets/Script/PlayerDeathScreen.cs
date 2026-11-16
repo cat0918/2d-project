@@ -47,6 +47,18 @@ public class PlayerDeathScreen : MonoBehaviour
         }
         restarting = true;
         Time.timeScale = 1f;
-        SceneManager.LoadSceneAsync(path, LoadSceneMode.Single);
+        RunCheckpointState.PrepareRestart(GetComponent<PlayerMove>(), path);
+        try
+        {
+            if (SceneManager.LoadSceneAsync(path, LoadSceneMode.Single) == null)
+                throw new System.InvalidOperationException("Could not start scene reload.");
+        }
+        catch (System.Exception exception)
+        {
+            RunCheckpointState.CancelRestart();
+            restarting = false;
+            error = exception.Message;
+            Debug.LogException(exception, this);
+        }
     }
 }

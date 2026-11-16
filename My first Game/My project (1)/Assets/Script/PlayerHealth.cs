@@ -41,6 +41,14 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
+    public void RestAtCheckpoint()
+    {
+        if (IsDead) return;
+        currentHealth = maxHealth;
+        invincibleTimer = Mathf.Max(invincibleTimer, invincibleDuration);
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
+    }
+
     public void TakeDamage(int damage, Vector2 hitSourcePosition)
     {
         if (damage <= 0) return;

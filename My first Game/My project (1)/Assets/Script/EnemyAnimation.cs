@@ -142,6 +142,8 @@ public class EnemyAnimation : MonoBehaviour
 
     private void HandleDamage()
     {
+        // Health and hit effects still apply; death cancels attacks through EnemyHealth.Die.
+        if (boss != null && boss.ignoreHitStagger) return;
         if (boss != null) boss.CancelAttack();
         if (melee != null) melee.CancelAttack();
         if (ranged != null) ranged.CancelShot();

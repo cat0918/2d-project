@@ -24,6 +24,7 @@ public class EnemyRangedAI : MonoBehaviour
     public GameObject projectilePrefab;
     public int projectileDamage = 1;
     public float projectileSpeed = 6f;
+    public bool useFireballVisuals = true;
     public float shootCooldown = 1.2f;
     [Range(0f, 1f)] public float fireTimeNormalized = 0.45f;
     [Min(0.05f)] public float fallbackShootDuration = 0.6f;
@@ -210,7 +211,9 @@ public class EnemyRangedAI : MonoBehaviour
                 foreach (Collider2D bullet in shot.GetComponentsInChildren<Collider2D>())
                     foreach (Collider2D owner in GetComponentsInChildren<Collider2D>())
                         Physics2D.IgnoreCollision(bullet, owner);
-                projectile.Launch(direction, projectileDamage, projectileSpeed);
+                projectile.Launch(direction, projectileDamage, projectileSpeed,
+                    GetComponentInParent<CheckpointEnemyRespawner>() != null);
+                if (useFireballVisuals) FireballVisual.Attach(shot);
             }
             else Destroy(shot);
         }

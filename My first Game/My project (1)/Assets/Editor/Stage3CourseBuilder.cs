@@ -10,7 +10,6 @@ public static class Stage3CourseBuilder
 {
     private const string RootName = "Stage3_ExplorationCourse";
 
-    [MenuItem("Tools/Level Design/Build Stage 3 Exploration Course")]
     public static void Build()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode) return;

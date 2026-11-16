@@ -11,6 +11,12 @@ public class PlayerAttack : MonoBehaviour
     public float attackCooldown = 0.25f;
     public LayerMask enemyLayer;
 
+    [Header("Hit Feedback")]
+    public bool hitFeedbackEnabled = true;
+    [Range(1, 16)] public int hitSparkCount = 7;
+    [Range(0.02f, 0.2f)] public float enemyTintDuration = 0.08f;
+    public Color hitSparkColor = new Color(1f, 0.82f, 0.42f, 1f);
+
     [Header("Animation Timing")]
     [Min(0)] public int attackAnimationIndex = 0;
     [Range(0f, 1f)] public float hitTimeNormalized = 0.35f;
@@ -75,13 +81,26 @@ public class PlayerAttack : MonoBehaviour
     {
         Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayer);
         damagedEnemies.Clear();
+        bool landedHit = false;
         for (int i = 0; i < hitEnemies.Length; i++)
         {
             EnemyHealth enemyHealth = hitEnemies[i].GetComponentInParent<EnemyHealth>();
             if (enemyHealth != null && damagedEnemies.Add(enemyHealth))
             {
-                enemyHealth.TakeDamage(attackDamage);
+                Vector2 impact = hitEnemies[i].ClosestPoint(attackPoint.position);
+                float direction = enemyHealth.transform.position.x >= transform.position.x ? 1f : -1f;
+                if (enemyHealth.TryTakeDamage(attackDamage) && hitFeedbackEnabled)
+                {
+                    landedHit = true;
+                    CombatHitBurst.Play(impact, direction, hitSparkCount, hitSparkColor);
+                    EnemyHitTint.Pulse(enemyHealth.gameObject, enemyTintDuration);
+                }
             }
+        }
+        if (landedHit && Camera.main != null)
+        {
+            CameraFollow2D follow = Camera.main.GetComponent<CameraFollow2D>();
+            if (follow != null) follow.PlayHitShake();
         }
     }
 

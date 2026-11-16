@@ -11,7 +11,6 @@ public static class FortressArtBuilder
     private static bool IsTerrain(Transform t) => t != null &&
         (t.name == "Floor_Horizon" || t.name == "Wall_Left_Horizon");
 
-    [MenuItem("Tools/Level Design/Apply Stage 1 Platform Stone")]
     public static void ApplyStage1Platforms()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode) return;

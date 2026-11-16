@@ -10,7 +10,6 @@ public static class BossRoomBuilder
 {
     private const string RootName = "BossRoom";
 
-    [MenuItem("Tools/Level Design/Build Boss Room")]
     public static void Build()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode) return;
@@ -83,7 +82,6 @@ public static class BossRoomBuilder
         finally { Undo.CollapseUndoOperations(group); }
     }
 
-    [MenuItem("Tools/Level Design/Connect Boss Encounter")]
     public static void ConnectEncounter()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode) return;

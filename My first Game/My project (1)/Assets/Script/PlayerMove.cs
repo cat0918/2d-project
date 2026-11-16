@@ -23,6 +23,16 @@ public class PlayerMove : MonoBehaviour
     public float groundCheckRadius = 0.15f;
     public LayerMask groundLayer;
 
+    [Header("Jump And Landing Feedback")]
+    public bool movementEffectsEnabled = true;
+    [Range(0.3f, 2f)] public float movementEffectScale = 1f;
+    public Color dustColor = new Color(0.7f, 0.75f, 0.78f, 0.7f);
+
+    private Collider2D bodyCollider;
+    private bool feedbackInitialized;
+    private float feedbackAirTime;
+    private Vector2 feedbackLastPosition;
+
     private Rigidbody2D rb;
     private float moveInput;
     private bool jumpPressed;
@@ -40,6 +50,7 @@ public class PlayerMove : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        bodyCollider = GetComponent<Collider2D>();
         defaultGravityScale = rb.gravityScale;
         HasDoubleJump = startWithDoubleJump;
     }
@@ -78,6 +89,7 @@ public class PlayerMove : MonoBehaviour
 
     private void FixedUpdate()
     {
+        UpdateLandingFeedback();
         float dt = Time.fixedDeltaTime;
         if (dashCooldownLeft > 0f)
         {
@@ -127,10 +139,12 @@ public class PlayerMove : MonoBehaviour
         {
             if (isGrounded && rb.linearVelocity.y <= 0f)
             {
+                PlayMovementEffect(false);
                 rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
             }
             else if (HasDoubleJump && airJumpCount < maxAirJumps)
             {
+                PlayMovementEffect(false, true);
                 rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
                 airJumpCount++;
             }
@@ -151,6 +165,44 @@ public class PlayerMove : MonoBehaviour
         if (isDashing) EndDash();
         knockbackEnds = Time.time + Mathf.Max(0f, duration);
         ClearMovementInput();
+    }
+
+    private void UpdateLandingFeedback()
+    {
+        Vector2 position = rb.position;
+        if (groundCheck == null) return;
+        // Ignore initialization and teleports, including checkpoint respawns.
+        if (!feedbackInitialized || Vector2.Distance(position, feedbackLastPosition) > 2f)
+        {
+            feedbackInitialized = true;
+            feedbackLastPosition = position;
+            feedbackAirTime = 0f;
+            return;
+        }
+        feedbackLastPosition = position;
+        bool touchingGround = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
+        if (!touchingGround)
+            feedbackAirTime += Time.fixedDeltaTime;
+        else if (rb.linearVelocity.y <= 0.1f)
+        {
+            if (feedbackAirTime >= 0.08f) PlayMovementEffect(true);
+            feedbackAirTime = 0f;
+        }
+    }
+
+    private void PlayMovementEffect(bool landing, bool airJump = false)
+    {
+        if (!movementEffectsEnabled) return;
+        Vector2 feet = bodyCollider != null
+            ? new Vector2(bodyCollider.bounds.center.x, bodyCollider.bounds.min.y + 0.04f)
+            : (Vector2)groundCheck.position;
+        MovementDustBurst.Play(feet, landing, airJump, movementEffectScale, dustColor);
+    }
+
+    private void OnDisable()
+    {
+        feedbackInitialized = false;
+        feedbackAirTime = 0f;
     }
 
     private void ClearMovementInput()

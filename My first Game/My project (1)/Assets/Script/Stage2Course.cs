@@ -9,7 +9,9 @@ public class Stage2Course : MonoBehaviour
 
     public void SetCheckpoint(Transform point)
     {
+        if (point == null) return;
         checkpoint = point;
+        RunCheckpointState.Save(point);
     }
 
     public void ReturnPlayer(PlayerHealth player)

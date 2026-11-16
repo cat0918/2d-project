@@ -6,6 +6,8 @@ public class BossAxeProjectile : MonoBehaviour
     public float speed = 7f;
     public float rotateSpeed = 720f;
     public float lifeTime = 4f;
+    public bool impactEffectsEnabled;
+    private bool impacted;
 
     private Vector2 direction = Vector2.right;
 
@@ -25,17 +27,26 @@ public class BossAxeProjectile : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        PlayerHealth playerHealth = other.GetComponent<PlayerHealth>();
+        if (impacted) return;
+        PlayerHealth playerHealth = other.GetComponentInParent<PlayerHealth>();
         if (playerHealth != null)
         {
+            Impact(other);
             playerHealth.TakeDamage(damage, transform.position);
-            Destroy(gameObject);
             return;
         }
 
         if (!other.isTrigger)
         {
-            Destroy(gameObject);
+            Impact(other);
         }
+    }
+
+    private void Impact(Collider2D other)
+    {
+        impacted = true;
+        if (impactEffectsEnabled) BossAttackEffects.Burst(other.ClosestPoint(transform.position));
+        foreach (Collider2D hitbox in GetComponentsInChildren<Collider2D>()) hitbox.enabled = false;
+        Destroy(gameObject);
     }
 }

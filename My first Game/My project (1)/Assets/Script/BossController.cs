@@ -35,6 +35,14 @@ public class BossController : MonoBehaviour
     [Header("Timing")]
     public float attackCooldown = 1.4f;
 
+    [Header("Hit Reaction")]
+    public bool ignoreHitStagger = true;
+
+    [Header("Attack Effects")]
+    public bool attackEffectsEnabled = true;
+    private BossAttackEffects preparationEffect;
+    private Collider2D bodyCollider;
+
     private Rigidbody2D rb;
     private float nextAttackTime;
     private bool isAttacking;
@@ -46,6 +54,7 @@ public class BossController : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        bodyCollider = GetComponent<Collider2D>();
         rb.freezeRotation = true;
         animationDriver = GetComponent<EnemyAnimation>();
         health = GetComponent<EnemyHealth>();
@@ -124,17 +133,29 @@ public class BossController : MonoBehaviour
 
     private IEnumerator DashAttack()
     {
+        if (attackEffectsEnabled)
+            preparationEffect = BossAttackEffects.Prepare(transform, bodyCollider, dashPrepareTime, true);
         yield return new WaitForSeconds(dashPrepareTime);
+        ClearPreparationEffect();
 
         if (!HasTarget()) yield break;
         float clipDuration = animationDriver != null ?
             animationDriver.PlayBossAction(PlayerState.ATTACK, dashAnimationIndex, dashAnimationSpeed) : 0f;
         float direction = attackDirection;
         float timer = dashDuration;
+        float dustTimer = 0f;
+        if (attackEffectsEnabled) BossAttackEffects.Burst(BossAttackEffects.Feet(transform, bodyCollider));
 
         while (timer > 0f)
         {
             rb.linearVelocity = new Vector2(direction * dashSpeed, rb.linearVelocity.y);
+            if (attackEffectsEnabled && dustTimer <= 0f)
+            {
+                MovementDustBurst.Play(BossAttackEffects.Feet(transform, bodyCollider), false, false, 1.2f,
+                    new Color(0.55f, 0.7f, 0.8f, 0.65f));
+                dustTimer = 0.07f;
+            }
+            dustTimer -= Time.fixedDeltaTime;
             timer -= Time.fixedDeltaTime;
             yield return new WaitForFixedUpdate();
         }
@@ -146,7 +167,11 @@ public class BossController : MonoBehaviour
 
     private IEnumerator AxeAttack()
     {
+        if (attackEffectsEnabled)
+            preparationEffect = BossAttackEffects.Prepare(axeFirePoint != null ? axeFirePoint : transform,
+                bodyCollider, axePrepareTime, false);
         yield return new WaitForSeconds(Mathf.Max(0f, axePrepareTime));
+        ClearPreparationEffect();
         if (!HasTarget()) yield break;
         float duration = animationDriver != null ?
             animationDriver.PlayBossAction(PlayerState.ATTACK, axeAnimationIndex, axeAnimationSpeed) : 0f;
@@ -157,7 +182,8 @@ public class BossController : MonoBehaviour
         if (HasTarget() && axeFirePoint != null && axeProjectilePrefab != null)
         {
             Vector2 direction = Vector2.right * attackDirection;
-            GameObject axeObject = Instantiate(axeProjectilePrefab, axeFirePoint.position, Quaternion.identity);
+            Vector3 spawnPosition = GetAxeSpawnPosition();
+            GameObject axeObject = Instantiate(axeProjectilePrefab, spawnPosition, Quaternion.identity);
 
             BossAxeProjectile axe = axeObject.GetComponent<BossAxeProjectile>();
             if (axe != null)
@@ -166,10 +192,44 @@ public class BossController : MonoBehaviour
                     foreach (Collider2D owner in GetComponentsInChildren<Collider2D>())
                         Physics2D.IgnoreCollision(projectile, owner);
                 axe.Launch(direction, axeDamage, axeSpeed);
+                axe.impactEffectsEnabled = attackEffectsEnabled;
+                if (attackEffectsEnabled)
+                {
+                    BossAttackEffects.AttachAxeTrail(axeObject);
+                    CombatHitBurst.Play(spawnPosition, attackDirection, 7, BossAttackEffects.Frost);
+                }
             }
-            else Destroy(axeObject);
+            else
+            {
+                Debug.LogWarning("Boss axe prefab is missing BossAxeProjectile on its root.", this);
+                Destroy(axeObject);
+            }
         }
+        else if (HasTarget()) Debug.LogWarning("Boss needs Axe Fire Point and Axe Projectile Prefab assigned.", this);
         if (duration > delay) yield return new WaitForSeconds(duration - delay);
+    }
+
+    private Vector3 GetAxeSpawnPosition()
+    {
+        Vector3 position = axeFirePoint.position;
+        if (bodyCollider == null) return position;
+        Bounds body = bodyCollider.bounds;
+        float radius = 0.2f;
+        BoxCollider2D axeBox = axeProjectilePrefab.GetComponent<BoxCollider2D>();
+        if (axeBox != null)
+        {
+            Vector2 scale = axeBox.transform.lossyScale;
+            Vector2 corner = new Vector2(Mathf.Abs(axeBox.offset.x) + axeBox.size.x * 0.5f,
+                Mathf.Abs(axeBox.offset.y) + axeBox.size.y * 0.5f);
+            radius = Vector2.Scale(corner, scale).magnitude;
+        }
+        // Keep the entire rotating collider clear of the floor, not just its initial pose.
+        if (Vector2.Distance(position, body.center) > body.size.magnitude + radius)
+            position = body.center;
+        position.x = body.center.x + attackDirection * (body.extents.x + radius + 0.05f);
+        position.y = Mathf.Max(position.y, body.min.y + radius + 0.05f);
+        position.z = transform.position.z;
+        return position;
     }
 
     private bool HasTarget()
@@ -181,6 +241,7 @@ public class BossController : MonoBehaviour
 
     public void CancelAttack()
     {
+        ClearPreparationEffect();
         bool wasAttacking = isAttacking;
         StopAllCoroutines();
         isAttacking = false;
@@ -190,6 +251,12 @@ public class BossController : MonoBehaviour
             nextAttackTime = Time.time + Mathf.Max(0f, attackCooldown);
             if (animationDriver != null) animationDriver.PlayRecovery();
         }
+    }
+
+    private void ClearPreparationEffect()
+    {
+        if (preparationEffect != null) preparationEffect.StopEffect();
+        preparationEffect = null;
     }
 
     private void OnDisable()

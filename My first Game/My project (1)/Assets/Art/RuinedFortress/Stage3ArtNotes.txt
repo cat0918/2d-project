@@ -1,0 +1,9 @@
+Method: built-in image_gen. FortressCourtyard.png used as style reference only.
+Output: FortressUpperTower.png. Existing images preserved.
+Stage 3 terrain: original stone image, separate weathered tint material with reduced moss.
+Background: uniformly scaled to cover live Stage 3 terrain bounds plus camera margins.
+Placed behind Stage 1/2 backgrounds; no new colliders or gameplay modifications.
+Visual in-game validation still required.
+
+Final generation prompt:
+Use case: stylized-concept. New production game background for Stage 3 of a 2D side scrolling ruined fortress platformer. Reference image is STYLE reference only, preserve matching crisp square pixel clusters, subdued gray-blue stone and gothic architecture. Wide 3:2 composition depicting a towering abandoned upper fortress hall: very tall thin gothic arches, broken vaulted ribs, distant tiers of galleries recessed in shadow, narrow windows showing pale overcast sky, weathered cracked masonry, sparse dry vines rather than lush moss. Flat orthographic front elevation, no perspective floor plane. More pale slate and desaturated silver than the damp dungeon, but low contrast and dark enough behind gameplay. Upper tower mood, soft cold daylight through small windows. Entire image filled with background architecture, with quiet lower areas. No foreground platforms, floor, stairs, objects to jump on, characters, enemies, HUD, text, watermark, or bright light shafts. This is the actual pixel-art background asset, not a screenshot or concept art frame.

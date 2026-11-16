@@ -3,7 +3,17 @@ using UnityEngine;
 [RequireComponent(typeof(Collider2D))]
 public class DoubleJumpPickup : Interactable
 {
+    public override string InteractionLabel => "\uB354\uBE14\uC810\uD504 \uD68D\uB4DD";
     private bool collected;
+
+    private void OnEnable()
+    {
+        foreach (TextMesh label in GetComponentsInChildren<TextMesh>(true))
+        {
+            Renderer labelRenderer = label.GetComponent<Renderer>();
+            if (labelRenderer != null) labelRenderer.enabled = false;
+        }
+    }
 
     private void Reset()
     {
@@ -12,7 +22,7 @@ public class DoubleJumpPickup : Interactable
 
     public override bool CanInteract(PlayerMove player)
     {
-        return !collected && player != null && !player.HasDoubleJump;
+        return isActiveAndEnabled && !collected && player != null && !player.HasDoubleJump;
     }
 
     public override void Interact(PlayerMove player)
@@ -21,5 +31,6 @@ public class DoubleJumpPickup : Interactable
         collected = true;
         player.UnlockDoubleJump();
         Debug.Log("Double jump unlocked!", player);
+        gameObject.SetActive(false);
     }
 }

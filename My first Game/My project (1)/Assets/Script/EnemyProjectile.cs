@@ -7,12 +7,15 @@ public class EnemyProjectile : MonoBehaviour
     public float lifeTime = 3f;
 
     private Vector2 direction = Vector2.right;
+    private bool impacted;
+    public bool ResetOnCheckpointRest { get; private set; }
 
-    public void Launch(Vector2 newDirection, int newDamage, float newSpeed)
+    public void Launch(Vector2 newDirection, int newDamage, float newSpeed, bool resetOnCheckpointRest = false)
     {
         direction = newDirection.normalized;
         damage = newDamage;
         speed = newSpeed;
+        ResetOnCheckpointRest = resetOnCheckpointRest;
         Destroy(gameObject, lifeTime);
     }
 
@@ -23,17 +26,27 @@ public class EnemyProjectile : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        PlayerHealth playerHealth = other.GetComponent<PlayerHealth>();
+        if (impacted) return;
+        PlayerHealth playerHealth = other.GetComponentInParent<PlayerHealth>();
         if (playerHealth != null)
         {
+            Impact(other);
             playerHealth.TakeDamage(damage, transform.position);
-            Destroy(gameObject);
             return;
         }
 
         if (!other.isTrigger)
         {
-            Destroy(gameObject);
+            Impact(other);
         }
+    }
+
+    private void Impact(Collider2D other)
+    {
+        impacted = true;
+        FireballVisual fireball = GetComponent<FireballVisual>();
+        if (fireball != null) fireball.PlayImpact(other.ClosestPoint(transform.position));
+        foreach (Collider2D hitbox in GetComponentsInChildren<Collider2D>()) hitbox.enabled = false;
+        Destroy(gameObject);
     }
 }
