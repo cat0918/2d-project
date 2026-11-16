@@ -28,6 +28,7 @@ public class DoubleJumpPickup : Interactable
     public override void Interact(PlayerMove player)
     {
         if (!CanInteract(player)) return;
+        GameSfx.Play(GameSound.Pickup, transform.position);
         collected = true;
         player.UnlockDoubleJump();
         Debug.Log("Double jump unlocked!", player);

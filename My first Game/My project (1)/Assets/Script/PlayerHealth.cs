@@ -55,6 +55,8 @@ public class PlayerHealth : MonoBehaviour
         if (IsDead) return;
         if (invincibleTimer > 0f) return;
 
+        GameSfx.Play(GameSound.Hurt, transform.position);
+
         currentHealth -= damage;
         currentHealth = Mathf.Max(currentHealth, 0);
         invincibleTimer = invincibleDuration;

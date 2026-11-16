@@ -9,6 +9,16 @@ public class PlayerMove : MonoBehaviour
     [Range(0.1f, 1f)] public float jumpCutMultiplier = 0.5f;
     public bool invertFacing = false;
 
+    [Header("Sound Effects")]
+    public bool soundEffectsEnabled = true;
+    [Range(0f, 1f)] public float soundEffectsVolume = 0.4f;
+    [Range(0f, 1f)] public float footstepVolume = 0.7f;
+    [Min(0.2f)] public float footstepDistance = 1.35f;
+    private Vector2 lastFootstepPosition;
+    private float walkedDistance;
+    private bool footstepInitialized;
+    private bool footstepWasGrounded;
+
     [Header("Abilities")]
     public bool startWithDoubleJump = true;
     public bool HasDoubleJump { get; private set; }
@@ -17,6 +27,14 @@ public class PlayerMove : MonoBehaviour
     public float dashSpeed = 16f;
     public float dashDuration = 0.16f;
     public float dashCooldown = 0.5f;
+    public bool dashEffectsEnabled = true;
+    [Range(0.3f, 2f)] public float dashEffectScale = 1f;
+    public Color dashEffectColor = new Color(0.4f, 0.85f, 0.95f, 0.8f);
+    private PlayerDashEffect dashEffect;
+
+    public float DashRecharge01 => isDashing ? 0f :
+        (dashCooldown <= 0f ? 1f : Mathf.Clamp01(1f - dashCooldownLeft / dashCooldown));
+    public bool IsDashReady => isActiveAndEnabled && !isDashing && dashCooldownLeft <= 0f && Time.time >= knockbackEnds;
 
     [Header("Ground Check")]
     public Transform groundCheck;
@@ -57,6 +75,11 @@ public class PlayerMove : MonoBehaviour
 
     private void Update()
     {
+        if (Time.timeScale <= 0f || GameFlowScreen.BlocksInput)
+        {
+            ClearMovementInput();
+            return;
+        }
         if (Time.time < knockbackEnds)
         {
             ClearMovementInput();
@@ -89,6 +112,7 @@ public class PlayerMove : MonoBehaviour
 
     private void FixedUpdate()
     {
+        UpdateFootsteps();
         UpdateLandingFeedback();
         float dt = Time.fixedDeltaTime;
         if (dashCooldownLeft > 0f)
@@ -139,11 +163,13 @@ public class PlayerMove : MonoBehaviour
         {
             if (isGrounded && rb.linearVelocity.y <= 0f)
             {
+                GameSfx.Play(GameSound.Jump, transform.position);
                 PlayMovementEffect(false);
                 rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
             }
             else if (HasDoubleJump && airJumpCount < maxAirJumps)
             {
+                GameSfx.Play(GameSound.Jump, transform.position);
                 PlayMovementEffect(false, true);
                 rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
                 airJumpCount++;
@@ -185,7 +211,11 @@ public class PlayerMove : MonoBehaviour
             feedbackAirTime += Time.fixedDeltaTime;
         else if (rb.linearVelocity.y <= 0.1f)
         {
-            if (feedbackAirTime >= 0.08f) PlayMovementEffect(true);
+            if (feedbackAirTime >= 0.08f)
+            {
+                PlayMovementEffect(true);
+                GameSfx.Play(GameSound.Land, transform.position);
+            }
             feedbackAirTime = 0f;
         }
     }
@@ -201,8 +231,38 @@ public class PlayerMove : MonoBehaviour
 
     private void OnDisable()
     {
+        footstepInitialized = false;
+        footstepWasGrounded = false;
+        walkedDistance = 0f;
+        if (isDashing) EndDash();
+        else if (dashEffect != null) { dashEffect.StopEffect(); dashEffect = null; }
         feedbackInitialized = false;
         feedbackAirTime = 0f;
+    }
+
+    private void UpdateFootsteps()
+    {
+        Vector2 position = rb.position;
+        Vector2 displacement = position - lastFootstepPosition;
+        lastFootstepPosition = position;
+        bool grounded = groundCheck != null && Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
+        bool canStep = footstepInitialized && footstepWasGrounded && grounded &&
+            !isDashing && !dashPressed && !jumpPressed && Time.time >= knockbackEnds &&
+            Mathf.Abs(moveInput) > 0.1f && Mathf.Abs(rb.linearVelocity.y) < 0.2f &&
+            displacement.magnitude < Mathf.Abs(moveSpeed) * Time.fixedDeltaTime * 2f + 0.1f;
+        footstepInitialized = true;
+        footstepWasGrounded = grounded;
+        if (!canStep || Mathf.Abs(displacement.x) < 0.001f)
+        {
+            walkedDistance = 0f;
+            return;
+        }
+        walkedDistance += Mathf.Abs(displacement.x);
+        if (walkedDistance >= Mathf.Max(0.2f, footstepDistance))
+        {
+            walkedDistance %= Mathf.Max(0.2f, footstepDistance);
+            GameSfx.PlayFootstep(transform.position, footstepVolume);
+        }
     }
 
     private void ClearMovementInput()
@@ -221,6 +281,7 @@ public class PlayerMove : MonoBehaviour
 
     private void StartDash()
     {
+        GameSfx.Play(GameSound.Dash, transform.position);
         isDashing = true;
         dashTimeLeft = dashDuration;
         dashCooldownLeft = dashCooldown;
@@ -235,10 +296,18 @@ public class PlayerMove : MonoBehaviour
             dashDirection = Mathf.Sign(transform.localScale.x);
             if (dashDirection == 0f) dashDirection = 1f;
         }
+        if (dashEffectsEnabled)
+        {
+            if (dashEffect != null) dashEffect.StopEffect();
+            dashEffect = PlayerDashEffect.Play(this, bodyCollider, dashDirection, dashEffectScale, dashEffectColor);
+            if (isGrounded) PlayMovementEffect(false);
+        }
     }
 
     private void EndDash()
     {
+        if (dashEffect != null) dashEffect.StopEffect();
+        dashEffect = null;
         isDashing = false;
         rb.gravityScale = defaultGravityScale;
     }

@@ -16,6 +16,7 @@ public class EnemyProjectile : MonoBehaviour
         damage = newDamage;
         speed = newSpeed;
         ResetOnCheckpointRest = resetOnCheckpointRest;
+        GameSfx.Play(GameSound.Cast, transform.position);
         Destroy(gameObject, lifeTime);
     }
 
@@ -44,6 +45,7 @@ public class EnemyProjectile : MonoBehaviour
     private void Impact(Collider2D other)
     {
         impacted = true;
+        GameSfx.Play(GameSound.Impact, transform.position);
         FireballVisual fireball = GetComponent<FireballVisual>();
         if (fireball != null) fireball.PlayImpact(other.ClosestPoint(transform.position));
         foreach (Collider2D hitbox in GetComponentsInChildren<Collider2D>()) hitbox.enabled = false;

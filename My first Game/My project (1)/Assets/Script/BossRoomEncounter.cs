@@ -103,6 +103,7 @@ public class BossRoomEncounter : MonoBehaviour
         {
             cleared = true;
             SetGate(false);
+            GameFlowScreen.BossDefeated(health);
         }
         else if (boss.target != null)
         {

@@ -24,6 +24,7 @@ public class EnemyHealth : MonoBehaviour
     public bool TryTakeDamage(int damage)
     {
         if (damage <= 0 || IsDead || IsInvulnerable) return false;
+        GameSfx.Play(GameSound.Hit, transform.position);
         currentHealth -= damage;
         if (currentHealth <= 0)
         {

@@ -23,7 +23,7 @@ public class PlayerInteraction : MonoBehaviour
     private void Update()
     {
         CurrentTarget = null;
-        if (Time.timeScale <= 0f || !player.isActiveAndEnabled || (health != null && health.IsDead)) return;
+        if (Time.timeScale <= 0f || GameFlowScreen.BlocksInput || !player.isActiveAndEnabled || (health != null && health.IsDead)) return;
 
         ContactFilter2D filter = new ContactFilter2D();
         filter.SetLayerMask(interactLayers);

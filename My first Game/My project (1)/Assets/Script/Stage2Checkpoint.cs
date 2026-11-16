@@ -33,6 +33,7 @@ public class Stage2Checkpoint : Interactable
     public override void Interact(PlayerMove player)
     {
         if (!CanInteract(player)) return;
+        GameSfx.Play(GameSound.Rest, transform.position);
         nextRestTime = Time.unscaledTime + 0.75f;
         course.SetCheckpoint(respawnPoint);
         PlayerHealth health = player.GetComponent<PlayerHealth>();

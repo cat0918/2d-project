@@ -16,6 +16,7 @@ public class BossAxeProjectile : MonoBehaviour
         direction = newDirection.normalized;
         damage = newDamage;
         speed = newSpeed;
+        GameSfx.Play(GameSound.Swing, transform.position);
         Destroy(gameObject, lifeTime);
     }
 
@@ -28,6 +29,7 @@ public class BossAxeProjectile : MonoBehaviour
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (impacted) return;
+        if (other.GetComponentInParent<BossAxeProjectile>() != null) return;
         PlayerHealth playerHealth = other.GetComponentInParent<PlayerHealth>();
         if (playerHealth != null)
         {
@@ -45,6 +47,7 @@ public class BossAxeProjectile : MonoBehaviour
     private void Impact(Collider2D other)
     {
         impacted = true;
+        GameSfx.Play(GameSound.Impact, transform.position);
         if (impactEffectsEnabled) BossAttackEffects.Burst(other.ClosestPoint(transform.position));
         foreach (Collider2D hitbox in GetComponentsInChildren<Collider2D>()) hitbox.enabled = false;
         Destroy(gameObject);

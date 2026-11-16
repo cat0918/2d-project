@@ -37,6 +37,7 @@ public class PlayerAttack : MonoBehaviour
 
     private void Update()
     {
+        if (Time.timeScale <= 0f || GameFlowScreen.BlocksInput) return;
         bool attackPressed = Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.J);
         if (!attackPressed) return;
         if (IsAttacking || Time.time < nextAttackTime) return;
@@ -79,6 +80,7 @@ public class PlayerAttack : MonoBehaviour
 
     private void PerformAttack()
     {
+        GameSfx.Play(GameSound.Swing, transform.position);
         Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayer);
         damagedEnemies.Clear();
         bool landedHit = false;
