@@ -53,7 +53,6 @@ public class StageTrapEmitter : MonoBehaviour
         {
             warning = true;
             SetFallingStonePreview(true);
-            if (warningMarker != null) warningMarker.color = new Color(1f, 0.25f, 0.08f);
             phaseEnds = Time.time + Mathf.Max(0.05f, warningTime);
             return;
         }
