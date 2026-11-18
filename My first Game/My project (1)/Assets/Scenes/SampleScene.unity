@@ -8783,9 +8783,12 @@ MonoBehaviour:
   meleeAnimationIndex: 0
   meleeAnimationSpeed: 1
   meleeHitTimeNormalized: 0.4
+  meleeSoundVolume: 0.5
   dashSpeed: 10
   dashDuration: 0.25
   dashPrepareTime: 0.45
+  dashSoundVolume: 0.5
+  dashSoundStartTime: 0.3
   axeFirePoint: {fileID: 1397853111}
   axeProjectilePrefab: {fileID: 5215769401234384544, guid: 78940e8c391f0ef4aa8ed55330e6eeda, type: 3}
   axeDamage: 1
@@ -8802,6 +8805,8 @@ MonoBehaviour:
   slamTempo: 1.5
   slamPrepareTime: 0.65
   slamJumpHeight: 3
+  slamJumpSoundVolume: 0.5
+  slamImpactSoundVolume: 0.5
   slamHoverTime: 0.25
   slamFallSpeed: 16
   slamRadius: 2
@@ -61988,9 +61993,12 @@ MonoBehaviour:
   meleeAnimationIndex: 0
   meleeAnimationSpeed: 1
   meleeHitTimeNormalized: 0.4
+  meleeSoundVolume: 0.5
   dashSpeed: 10
   dashDuration: 0.25
   dashPrepareTime: 0.45
+  dashSoundVolume: 0.5
+  dashSoundStartTime: 0.3
   axeFirePoint: {fileID: 340244080}
   axeProjectilePrefab: {fileID: 5215769401234384544, guid: 78940e8c391f0ef4aa8ed55330e6eeda, type: 3}
   axeDamage: 1
@@ -62007,6 +62015,8 @@ MonoBehaviour:
   slamTempo: 1.5
   slamPrepareTime: 0.65
   slamJumpHeight: 3
+  slamJumpSoundVolume: 0.5
+  slamImpactSoundVolume: 0.5
   slamHoverTime: 0.25
   slamFallSpeed: 16
   slamRadius: 2
@@ -95871,7 +95881,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5300178681624474475, guid: dba443a66548243fe806dd91db6511af, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 1.68
+      value: 2.72
       objectReference: {fileID: 0}
     - target: {fileID: 5300178681624474475, guid: dba443a66548243fe806dd91db6511af, type: 3}
       propertyPath: m_LocalRotation.w
@@ -95891,11 +95901,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5300178681624474475, guid: dba443a66548243fe806dd91db6511af, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -30.56583
+      value: -90.16
       objectReference: {fileID: 0}
     - target: {fileID: 5300178681624474475, guid: dba443a66548243fe806dd91db6511af, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -2.5413592
+      value: 48.25
       objectReference: {fileID: 0}
     - target: {fileID: 5300178681624474475, guid: dba443a66548243fe806dd91db6511af, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x

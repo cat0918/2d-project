@@ -22,7 +22,7 @@ public class PlayerDeathScreen : MonoBehaviour
     // Temporary UI for testing the death loop before the final Canvas design.
     private void OnGUI()
     {
-        if (!health.DeathSequenceFinished) return;
+        if (!health.DeathSequenceFinished || GameFlowScreen.BlocksInput) return;
         float width = Mathf.Min(340f, Screen.width - 24f);
         float height = Mathf.Min(190f, Screen.height - 24f);
         Rect panel = new Rect((Screen.width - width) / 2f, (Screen.height - height) / 2f, width, height);
@@ -37,7 +37,7 @@ public class PlayerDeathScreen : MonoBehaviour
 
     public void Restart()
     {
-        if (!health.DeathSequenceFinished || restarting) return;
+        if (!health.DeathSequenceFinished || restarting || GameFlowScreen.BlocksInput) return;
         string path = gameObject.scene.path;
         if (string.IsNullOrEmpty(path) || !Application.CanStreamedLevelBeLoaded(path))
         {

@@ -21,6 +21,8 @@ public class PlayerAnimation : MonoBehaviour
     private PlayerState? currentState;
     private bool initialized;
     private PlayerAttack attack;
+    private Transform visualContainer;
+    private Vector3 visualLocalPosition;
 
     private void Awake()
     {
@@ -29,6 +31,15 @@ public class PlayerAnimation : MonoBehaviour
         attack = GetComponent<PlayerAttack>();
         health = GetComponent<PlayerHealth>();
         if (visuals == null) visuals = GetComponentInChildren<SPUM_Prefabs>();
+        if (visuals != null && visuals._anim != null)
+        {
+            Transform model = visuals._anim.transform;
+            if (model != transform && model.IsChildOf(transform))
+            {
+                visualContainer = model;
+                visualLocalPosition = model.localPosition;
+            }
+        }
     }
 
     private void Start()
@@ -91,6 +102,9 @@ public class PlayerAnimation : MonoBehaviour
 
     private void LateUpdate()
     {
+        // SPUM's damaged clip keys the Animator container itself to Y=0.
+        // Preserve the authored collider alignment; animate only the bones below it.
+        if (visualContainer != null) visualContainer.localPosition = visualLocalPosition;
         if (health != null && health.IsDead) return;
         if (!initialized) return;
         if (IsReactingToHit) return;

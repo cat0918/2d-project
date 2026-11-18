@@ -21,11 +21,14 @@ public class BossController : MonoBehaviour
     [Min(0)] public int meleeAnimationIndex = 0;
     [Range(0.1f, 2f)] public float meleeAnimationSpeed = 1f;
     [Range(0f, 1f)] public float meleeHitTimeNormalized = 0.4f;
+    [Range(0f, 1f)] public float meleeSoundVolume = 0.5f;
 
     [Header("Dash Attack")]
     public float dashSpeed = 10f;
     public float dashDuration = 0.25f;
     public float dashPrepareTime = 0.45f;
+    [Range(0f, 1f)] public float dashSoundVolume = 0.5f;
+    [Min(0f)] public float dashSoundStartTime = 0.3f;
 
     [Header("Axe Attack")]
     public Transform axeFirePoint;
@@ -48,6 +51,8 @@ public class BossController : MonoBehaviour
     [Range(1f, 2.5f)] public float slamTempo = 1.5f;
     [Min(0f)] public float slamPrepareTime = 0.65f;
     [Min(0.5f)] public float slamJumpHeight = 3f;
+    [Range(0f, 1f)] public float slamJumpSoundVolume = 0.5f;
+    [Range(0f, 1f)] public float slamImpactSoundVolume = 0.5f;
     [Min(0f)] public float slamHoverTime = 0.25f;
     [Min(1f)] public float slamFallSpeed = 16f;
     [Min(0.2f)] public float slamRadius = 2f;
@@ -236,7 +241,7 @@ public class BossController : MonoBehaviour
         if (!HasTarget() || (health != null && health.IsDead)) yield break;
 
         Bounds area = MeleeBounds();
-        GameSfx.Play(GameSound.Swing, transform.position);
+        GameSfx.Play(GameSound.BossMelee, transform.position, meleeSoundVolume);
         var damaged = new System.Collections.Generic.HashSet<PlayerHealth>();
         foreach (Collider2D hit in Physics2D.OverlapBoxAll(area.center, area.size, 0f))
         {
@@ -299,6 +304,7 @@ public class BossController : MonoBehaviour
         float travelSpeed = Mathf.Abs(landingX - bodyCollider.bounds.center.x) / Mathf.Max(0.05f, ascentDuration);
         SetHorizontalMotionAllowed(true);
         rb.linearVelocity = new Vector2(SlamTravelVelocity(landingX, travelSpeed), jumpVelocity);
+        GameSfx.Play(GameSound.BossDash, transform.position, slamJumpSoundVolume);
         if (attackEffectsEnabled)
             MovementDustBurst.Play(BossAttackEffects.Feet(transform, bodyCollider), false, false, 1.5f, BossAttackEffects.Frost);
         // A ceiling collision ends ascent naturally; the timeout prevents a stalled pattern.
@@ -346,7 +352,7 @@ public class BossController : MonoBehaviour
         }
         RestoreSlamPhysics();
         if (!landed) yield break;
-        GameSfx.Play(GameSound.Slam, impact);
+        GameSfx.Play(GameSound.Slam, impact, slamImpactSoundVolume);
         BossSlamImpact.Play(impact, Mathf.Max(0.2f, slamRadius), Mathf.Max(0.1f, slamHitHeight));
         if (attackEffectsEnabled)
         {
@@ -405,7 +411,7 @@ public class BossController : MonoBehaviour
             animationDriver.PlayBossAction(PlayerState.ATTACK, dashAnimationIndex, dashAnimationSpeed) : 0f;
         float direction = attackDirection;
         float timer = dashDuration;
-        GameSfx.Play(GameSound.Dash, transform.position);
+        GameSfx.Play(GameSound.BossDash, transform.position, dashSoundVolume, dashSoundStartTime);
         SetHorizontalMotionAllowed(true);
         float dustTimer = 0f;
         if (attackEffectsEnabled) BossAttackEffects.Burst(BossAttackEffects.Feet(transform, bodyCollider));

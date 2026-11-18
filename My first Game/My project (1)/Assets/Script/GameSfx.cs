@@ -1,16 +1,17 @@
 using UnityEngine;
 
-public enum GameSound { Swing, Hit, Hurt, Jump, Dash, Land, Cast, Impact, Slam, Rest, Pickup, Gate }
+public enum GameSound { Swing, Hit, Hurt, Jump, Dash, Land, Cast, Impact, Slam, Rest, Pickup, Gate, BossMelee, BossDash, BossAxeThrow }
 
-// Generated placeholders plus the user's Kenney CC0 audio clips.
+// Generated placeholders plus user-provided audio clips.
 public class GameSfx : MonoBehaviour
 {
     private const float MasterVolumeScale = 0.8f;
     private static GameSfx instance;
     private readonly AudioSource[] voices = new AudioSource[8];
-    private readonly AudioClip[] clips = new AudioClip[12];
-    private readonly bool[] generatedClips = new bool[12];
-    private readonly float[] nextTimes = new float[12];
+    private static readonly int SoundCount = System.Enum.GetValues(typeof(GameSound)).Length;
+    private readonly AudioClip[] clips = new AudioClip[SoundCount];
+    private readonly bool[] generatedClips = new bool[SoundCount];
+    private readonly float[] nextTimes = new float[SoundCount];
     private PlayerMove player;
     private AudioClip[] footsteps;
     private int lastFootstep = -1;
@@ -35,11 +36,11 @@ public class GameSfx : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetSession() { instance = null; }
 
-    public static void Play(GameSound sound, Vector3 position)
+    public static void Play(GameSound sound, Vector3 position, float volume = 1f, float startTime = 0f)
     {
         if (Time.timeScale <= 0f) return;
         if (instance == null) instance = new GameObject("GameSoundEffects").AddComponent<GameSfx>();
-        instance.PlaySound(sound, position);
+        instance.PlaySound(sound, position, volume, startTime);
     }
 
     private void Awake()
@@ -54,6 +55,14 @@ public class GameSfx : MonoBehaviour
                 clips[i] = Resources.Load<AudioClip>("Audio/Movement/cloth1");
             else if ((GameSound)i == GameSound.Land)
                 clips[i] = Resources.Load<AudioClip>("Audio/Movement/bookPlace1");
+            else if ((GameSound)i == GameSound.BossMelee)
+                clips[i] = Resources.Load<AudioClip>("Audio/Combat/BossMeleeSwing");
+            else if ((GameSound)i == GameSound.BossDash)
+                clips[i] = Resources.Load<AudioClip>("Audio/Combat/BossDash");
+            else if ((GameSound)i == GameSound.BossAxeThrow)
+                clips[i] = Resources.Load<AudioClip>("Audio/Combat/BossAxeThrow");
+            else if ((GameSound)i == GameSound.Slam)
+                clips[i] = Resources.Load<AudioClip>("Audio/Combat/BossGroundImpact");
             if (clips[i] == null)
             {
                 clips[i] = Synthesize((GameSound)i);
@@ -69,17 +78,17 @@ public class GameSfx : MonoBehaviour
         }
     }
 
-    private void PlaySound(GameSound sound, Vector3 position)
+    private void PlaySound(GameSound sound, Vector3 position, float volume, float startTime)
     {
         if (player == null) player = FindAnyObjectByType<PlayerMove>();
         if (player != null && !player.soundEffectsEnabled) return;
         int index = (int)sound;
         if (Time.unscaledTime < nextTimes[index]) return;
-        if (PlayClip(clips[index], position, 1f))
+        if (PlayClip(clips[index], position, volume, startTime))
             nextTimes[index] = Time.unscaledTime + (sound == GameSound.Impact ? 0.08f : 0.04f);
     }
 
-    private bool PlayClip(AudioClip clip, Vector3 position, float volume)
+    private bool PlayClip(AudioClip clip, Vector3 position, float volume, float startTime = 0f)
     {
         if (player == null) player = FindAnyObjectByType<PlayerMove>();
         if (clip == null || (player != null && !player.soundEffectsEnabled)) return false;
@@ -92,6 +101,7 @@ public class GameSfx : MonoBehaviour
             if (!candidate.isPlaying) { voice = candidate; break; }
         if (voice == null) return false;
         voice.clip = clip;
+        voice.time = Mathf.Clamp(startTime, 0f, Mathf.Max(0f, clip.length - 0.01f));
         voice.volume = MasterVolumeScale * Mathf.Clamp01(volume) * attenuation * (player != null ? Mathf.Clamp01(player.soundEffectsVolume) : 0.4f);
         voice.pitch = 1f;
         voice.Play();
@@ -100,6 +110,9 @@ public class GameSfx : MonoBehaviour
 
     private static AudioClip Synthesize(GameSound sound)
     {
+        if (sound == GameSound.BossMelee) sound = GameSound.Swing;
+        if (sound == GameSound.BossAxeThrow) sound = GameSound.Swing;
+        if (sound == GameSound.BossDash) sound = GameSound.Dash;
         const int rate = 22050;
         float duration = sound == GameSound.Gate ? 1.5f :
             sound == GameSound.Rest || sound == GameSound.Pickup ? 0.55f : sound == GameSound.Slam ? 0.4f : 0.18f;

@@ -6,6 +6,7 @@ public class BossAxeProjectile : MonoBehaviour
     public float speed = 7f;
     public float rotateSpeed = 720f;
     public float lifeTime = 4f;
+    [Range(0f, 1f)] public float throwSoundVolume = 0.5f;
     public bool impactEffectsEnabled;
     private bool impacted;
 
@@ -16,7 +17,7 @@ public class BossAxeProjectile : MonoBehaviour
         direction = newDirection.normalized;
         damage = newDamage;
         speed = newSpeed;
-        GameSfx.Play(GameSound.Swing, transform.position);
+        GameSfx.Play(GameSound.BossAxeThrow, transform.position, throwSoundVolume);
         Destroy(gameObject, lifeTime);
     }
 

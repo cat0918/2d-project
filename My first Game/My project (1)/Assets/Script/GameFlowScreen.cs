@@ -5,8 +5,10 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 // Session flags survive death reloads, but reset for a fresh Play session.
+[DefaultExecutionOrder(-1000)]
 public class GameFlowScreen : MonoBehaviour
 {
+    private const string VolumePreference = "Audio.MasterVolume";
     private static GameFlowScreen instance;
     private static bool started;
     private static bool completed;
@@ -19,8 +21,13 @@ public class GameFlowScreen : MonoBehaviour
     private float previousTimeScale = 1f;
     private float revealTime;
     private RawImage titleBackground;
+    private bool pauseMenu;
+    private bool loading;
+    private bool previousAudioPause;
+    private Text volumeLabel;
+    private Text menuMessage;
 
-    public static bool BlocksInput => (instance != null && instance.visible) || Time.frameCount <= resumeFrame;
+    public static bool BlocksInput => (instance != null && (instance.visible || instance.loading)) || Time.frameCount <= resumeFrame;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetSession()
@@ -30,6 +37,8 @@ public class GameFlowScreen : MonoBehaviour
         started = completed = false;
         resumeFrame = -1;
         Time.timeScale = 1f;
+        AudioListener.pause = false;
+        AudioListener.volume = Mathf.Clamp01(PlayerPrefs.GetFloat(VolumePreference, 1f));
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -39,7 +48,13 @@ public class GameFlowScreen : MonoBehaviour
     {
         if (instance != null || FindAnyObjectByType<PlayerMove>() == null) return;
         instance = new GameObject("GameFlowScreen").AddComponent<GameFlowScreen>();
-        if (!started) instance.Show(false);
+        GameBackgroundMusic.EnsurePlaying();
+        if (!started)
+        {
+            Time.timeScale = 1f;
+            AudioListener.pause = false;
+            instance.Show(false);
+        }
     }
 
     public static void BossDefeated(EnemyHealth bossHealth)
@@ -63,11 +78,14 @@ public class GameFlowScreen : MonoBehaviour
         }
     }
 
-    private void Show(bool ending)
+    private void Show(bool ending, bool paused = false)
     {
+        pauseMenu = paused;
         previousTimeScale = Time.timeScale;
+        previousAudioPause = AudioListener.pause;
         visible = true;
         Time.timeScale = 0f;
+        AudioListener.pause = true;
         revealTime = Time.unscaledTime;
         font = Font.CreateDynamicFontFromOSFont(new[] { "Malgun Gothic", "Arial" }, 32);
         screen = new GameObject("TitleCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster), typeof(CanvasGroup));
@@ -85,6 +103,17 @@ public class GameFlowScreen : MonoBehaviour
         background.anchorMin = Vector2.zero;
         background.anchorMax = Vector2.one;
         background.sizeDelta = Vector2.zero;
+        if (paused)
+        {
+            background.GetComponent<Image>().color = new Color(0.015f, 0.025f, 0.04f, 0.88f);
+            Box("PauseRule", screen.transform, new Vector2(0f, 190f), new Vector2(230f, 2f), new Color(0.72f, 0.62f, 0.4f));
+            Button continueButton = MakeButton("계속하기", 42f, Resume);
+            CreateVolumeSlider();
+            MakeButton("게임 종료", -135f, ReturnToTitle);
+            menuMessage = Label("PauseFooter", "게임 종료 시 시작 화면으로 돌아갑니다.\n다시 시작하면 마지막 체크포인트에서 이어집니다.", 16, -230f, new Color(0.67f, 0.73f, 0.75f));
+            SelectButton(continueButton);
+            return;
+        }
         if (ending || !CreateTitleBackground())
         {
             // Retain the gate silhouette for the ending and missing-asset fallback.
@@ -103,13 +132,17 @@ public class GameFlowScreen : MonoBehaviour
         Button primary = MakeButton(ending ? "계속 탐험하기" : "게임 시작", -65f, Resume);
         MakeButton("게임 종료", -131f, Quit);
         Label("Footer", ending ? "플레이해 주셔서 감사합니다." : "이동 A / D · 점프 SPACE · 공격 J / 클릭 · 대시 SHIFT · 상호작용 E", 15, -265f, new Color(0.52f, 0.58f, 0.61f));
-        if (EventSystem.current == null)
-            new GameObject("MenuEventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
-        EventSystem.current.SetSelectedGameObject(primary.gameObject);
+        SelectButton(primary);
     }
 
     private void Update()
     {
+        if (!loading && Input.GetKeyDown(KeyCode.Escape))
+        {
+            if (visible && pauseMenu) Resume();
+            else if (!visible && started && !BlocksInput && Time.timeScale > 0f)
+                Show(false, true);
+        }
         if (!visible) return;
         group.alpha = Mathf.Clamp01((Time.unscaledTime - revealTime) / 0.4f);
         FitTitleBackground();
@@ -151,17 +184,105 @@ public class GameFlowScreen : MonoBehaviour
 
     private void Resume()
     {
+        if (loading) return;
+        PlayerPrefs.Save();
         started = true;
         visible = false;
+        pauseMenu = false;
         resumeFrame = Time.frameCount + 1;
         Time.timeScale = previousTimeScale;
+        AudioListener.pause = previousAudioPause;
         if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
         Destroy(screen);
         if (font != null) Destroy(font);
     }
 
+    private static void SelectButton(Button button)
+    {
+        if (EventSystem.current == null)
+            new GameObject("MenuEventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+        EventSystem.current.SetSelectedGameObject(button.gameObject);
+    }
+
+    private void CreateVolumeSlider()
+    {
+        volumeLabel = Label("VolumeLabel", "", 18, -24f, new Color(0.85f, 0.86f, 0.8f));
+        RectTransform track = Box("MasterVolume", screen.transform, new Vector2(0f, -65f), new Vector2(310f, 24f), new Color(0.1f, 0.15f, 0.18f));
+        track.GetComponent<Image>().raycastTarget = true;
+        Slider slider = track.gameObject.AddComponent<Slider>();
+        RectTransform fill = Box("Fill", track, Vector2.zero, Vector2.zero, new Color(0.62f, 0.73f, 0.72f));
+        Stretch(fill);
+        fill.offsetMin = new Vector2(0f, 8f);
+        fill.offsetMax = new Vector2(0f, -8f);
+        RectTransform handleArea = new GameObject("HandleArea", typeof(RectTransform)).GetComponent<RectTransform>();
+        handleArea.SetParent(track, false);
+        Stretch(handleArea);
+        handleArea.offsetMin = new Vector2(8f, 0f);
+        handleArea.offsetMax = new Vector2(-8f, 0f);
+        RectTransform handle = Box("Handle", handleArea, Vector2.zero, new Vector2(16f, 30f), new Color(0.87f, 0.78f, 0.56f));
+        slider.fillRect = fill;
+        slider.handleRect = handle;
+        slider.targetGraphic = handle.GetComponent<Image>();
+        slider.minValue = 0f;
+        slider.maxValue = 1f;
+        slider.SetValueWithoutNotify(AudioListener.volume);
+        UpdateVolume(AudioListener.volume);
+        slider.onValueChanged.AddListener(UpdateVolume);
+    }
+
+    private void UpdateVolume(float value)
+    {
+        AudioListener.volume = Mathf.Clamp01(value);
+        PlayerPrefs.SetFloat(VolumePreference, AudioListener.volume);
+        volumeLabel.text = "소리  " + Mathf.RoundToInt(AudioListener.volume * 100f) + "%";
+    }
+
+    private void ReturnToTitle()
+    {
+        if (loading) return;
+        PlayerMove player = FindAnyObjectByType<PlayerMove>();
+        string path = player != null ? player.gameObject.scene.path : gameObject.scene.path;
+        if (string.IsNullOrEmpty(path) || !Application.CanStreamedLevelBeLoaded(path))
+        {
+            menuMessage.text = "현재 씬을 Build Profiles의 Scene List에 추가해 주세요.";
+            return;
+        }
+        PlayerPrefs.Save();
+        RunCheckpointState.PrepareRestart(player, path);
+        loading = true;
+        group.interactable = false;
+        started = false;
+        bool wasCompleted = completed;
+        completed = false;
+        // The new scene owns its title pause; this instance must not unpause it on destruction.
+        visible = false;
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
+        try
+        {
+            AsyncOperation operation = SceneManager.LoadSceneAsync(path, LoadSceneMode.Single);
+            if (operation == null) throw new System.InvalidOperationException("Scene reload could not start.");
+            // Keep the old world frozen while the scene loads. The new title resumes at normal speed.
+            Time.timeScale = 0f;
+            AudioListener.pause = true;
+        }
+        catch (System.Exception exception)
+        {
+            RunCheckpointState.CancelRestart();
+            loading = false;
+            visible = started = true;
+            completed = wasCompleted;
+            group.interactable = true;
+            Time.timeScale = 0f;
+            AudioListener.pause = true;
+            menuMessage.text = "시작 화면으로 돌아가지 못했습니다. 다시 시도해 주세요.";
+            Debug.LogException(exception, this);
+        }
+    }
+
     private void Quit()
     {
+        PlayerPrefs.Save();
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #else
@@ -181,7 +302,7 @@ public class GameFlowScreen : MonoBehaviour
         return rect;
     }
 
-    private void Label(string name, string value, int size, float y, Color color)
+    private Text Label(string name, string value, int size, float y, Color color)
     {
         RectTransform rect = new GameObject(name, typeof(RectTransform), typeof(Text)).GetComponent<RectTransform>();
         rect.SetParent(screen.transform, false);
@@ -198,6 +319,7 @@ public class GameFlowScreen : MonoBehaviour
         Shadow shadow = rect.gameObject.AddComponent<Shadow>();
         shadow.effectColor = new Color(0.01f, 0.015f, 0.025f, 0.9f);
         shadow.effectDistance = new Vector2(1f, -2f);
+        return text;
     }
 
     private Button MakeButton(string caption, float y, UnityEngine.Events.UnityAction action)
@@ -220,7 +342,11 @@ public class GameFlowScreen : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (visible) Time.timeScale = previousTimeScale;
+        if (visible)
+        {
+            Time.timeScale = previousTimeScale;
+            AudioListener.pause = previousAudioPause;
+        }
         if (font != null) Destroy(font);
         if (instance == this) instance = null;
     }
